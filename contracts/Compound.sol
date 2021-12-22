@@ -29,7 +29,6 @@ contract Compound is Ownable {
         staking = _staking;
     }
 
-    // revert on negative amount?
     function approve(uint256 _amount) external onlyOwner {
         stakedToken.approve(address(staking), _amount);
     }

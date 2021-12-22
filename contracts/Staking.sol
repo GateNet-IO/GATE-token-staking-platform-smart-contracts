@@ -5,6 +5,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 
 contract Staking is Ownable {
+    /* ========== STATE VARIABLES ========== */
+
     struct Stake {
         uint256 amount;
         uint256 stakeTime;
@@ -29,11 +31,14 @@ contract Staking is Ownable {
     mapping(address => uint256) public fees;
     mapping(address => Stake[]) public stakes;
 
+    /* ========== EVENTS ========== */
+
     event Staked(address indexed user, uint256 amount);
     event Claimed(address indexed user, uint256 amount);
     event FeeDistributed(uint256 block, uint256 amount);
-    event FeesClaimed(address indexed user, uint256 amount);
     event Unstaked(address indexed user, uint256 amount, uint256 index);
+
+    /* ========== CONSTRUCTOR ========== */
 
     constructor(
         address _compound,
@@ -47,21 +52,7 @@ contract Staking is Ownable {
         endDate = _endDate;
     }
 
-    modifier started() {
-        require(block.timestamp >= beginDate);
-        _;
-    }
-
-    modifier onlyCompound() {
-        require(msg.sender == compound, "Staking:: Only compound");
-        _;
-    }
-
-    function feeDistribution(uint256 amount) external onlyOwner {
-        feePerToken += amount / totalStaked;
-        stakedToken.transferFrom(msg.sender, address(this), amount);
-        emit FeeDistributed(block.number, amount);
-    }
+    /* ========== MUTATIVE FUNCTIONS ========== */
 
     function stake(uint256 amount)
         external
@@ -103,7 +94,7 @@ contract Staking is Ownable {
         require(amount > 0, "Cannot unstake 0");
         require(amount <= stakes[msg.sender][index].amount, "Stake too big");
         require(
-            stakes[msg.sender][index].stakeTime + lockPeriod >= block.timestamp
+            stakes[msg.sender][index].stakeTime + lockPeriod <= block.timestamp
         );
         totalStaked -= amount;
         stakes[msg.sender][index].amount -= amount;
@@ -124,6 +115,30 @@ contract Staking is Ownable {
         }
     }
 
+
+    /* ========== RESTRICTED FUNCTIONS ========== */
+
+    function autoCompStake(uint256 _amount) external onlyCompound {}
+
+    function autoCompUnstake(uint256 _amount) external onlyCompound {}
+
+    function setOnlyCompoundStaking(bool _onlyCompoundStaking)
+        public
+        onlyOwner
+    {}
+
+    function setCompoundAddress(address _compound) public onlyOwner {
+        compound = _compound;
+    }
+
+    function feeDistribution(uint256 amount) external onlyOwner {
+        feePerToken += amount / totalStaked;
+        stakedToken.transferFrom(msg.sender, address(this), amount);
+        emit FeeDistributed(block.number, amount);
+    }
+
+    /* ========== VIEWS ========== */
+
     function lastTimeRewardApplicable() public view returns (uint256) {
         return block.timestamp < endDate ? block.timestamp : endDate;
     }
@@ -138,10 +153,6 @@ contract Staking is Ownable {
                 ((lastUpdateTime) * (rewardRate) * (1e18)) /
                 (totalStaked));
     }
-
-    function autoCompStake(uint256 _amount) external onlyCompound {}
-
-    function autoCompUnstake(uint256 _amount) external onlyCompound {}
 
     function pendingReward(address user) public view returns (uint256) {
         uint256 amount;
@@ -167,6 +178,16 @@ contract Staking is Ownable {
         return amount;
     }
 
+    function getUserStakes(address user) public view returns (Stake[] memory) {
+        return stakes[user];
+    }
+
+    function totalUserStakes(address _user) public view returns (uint256) {
+        return stakes[_user].length;
+    }
+
+    /* ========== MODIFIERS ========== */
+
     modifier distributeReward(address account) {
         rewardPerTokenStored = rewardPerToken();
         lastUpdateTime = lastTimeRewardApplicable();
@@ -177,20 +198,13 @@ contract Staking is Ownable {
         _;
     }
 
-    function setCompoundAddress(address _compound) public onlyOwner {
-        compound = _compound;
+    modifier started() {
+        require(block.timestamp >= beginDate);
+        _;
     }
 
-    function setOnlyCompoundStaking(bool _onlyCompoundStaking)
-        public
-        onlyOwner
-    {}
-
-    function getUserStakes(address user) public view returns (Stake[] memory) {
-        return stakes[user];
-    }
-
-    function totalUserStakes(address _user) public view returns (uint256) {
-        return stakes[_user].length;
+    modifier onlyCompound() {
+        require(msg.sender == compound, "Staking:: Only compound");
+        _;
     }
 }
