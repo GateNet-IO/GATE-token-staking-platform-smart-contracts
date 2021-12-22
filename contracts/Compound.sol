@@ -18,6 +18,7 @@ contract Compound is Ownable {
     uint256 public lastUpdateTime;
     uint256 public lastUpdate;
     uint256 public shareWorth;
+    uint256 public shares;
     IERC20 public stakedToken;
     Staking public staking;
 
@@ -43,8 +44,13 @@ contract Compound is Ownable {
 
     function deposit(uint256 amount) external updateShareWorth {
         require(amount > 0, "Nothing to deposit");
+        shares += amount / shareWorth;
         userInfo[msg.sender].push(
-            UserInfo(amount / shareWorth, block.timestamp, staking.feePerToken())
+            UserInfo(
+                amount / shareWorth,
+                block.timestamp,
+                staking.feePerToken()
+            )
         );
         staking.autoCompStake(amount);
         stakedToken.transferFrom(msg.sender, address(staking), amount);
@@ -53,19 +59,20 @@ contract Compound is Ownable {
 
     function withdrawAll() external {}
 
-    function harvest() public {
+    function harvest() public updateShareWorth {
         emit Harvest(msg.sender);
     }
 
-    function withdraw(uint256 shares, uint256 index) public updateShareWorth {
+    function withdraw(uint256 _shares, uint256 index) public updateShareWorth {
         require(shares > 0, "Cannot unstake 0");
         require(shares <= userInfo[msg.sender][index].shares, "Stake too big");
         require(
             userInfo[msg.sender][index].stakeTime + staking.lockPeriod() <=
                 block.timestamp
         );
-        staking.autoCompUnstake(shares * shareWorth);
-        staking.transferReward(shares * shareWorth, msg.sender);
+        shares -= _shares;
+        staking.autoCompUnstake(_shares * shareWorth);
+        staking.transferReward(_shares * shareWorth, msg.sender);
         //emit Withdraw(msg.sender, currentAmount, _shares);
     }
 
@@ -73,9 +80,8 @@ contract Compound is Ownable {
 
     function balanceOf() public returns (uint256) {}
 
-    function _earn() internal {}
-
     modifier updateShareWorth() {
+        uint256 placeHolder = shareWorth;
         shareWorth *=
             1 +
             ((staking.lastTimeRewardApplicable() - staking.lastUpdateTime()) *
@@ -83,6 +89,7 @@ contract Compound is Ownable {
                 1e18) /
             totalStaked;
         lastUpdateTime = staking.lastTimeRewardApplicable();
+        staking.autoCompStake(shares * (shareWorth - placeHolder));
         _;
     }
 }

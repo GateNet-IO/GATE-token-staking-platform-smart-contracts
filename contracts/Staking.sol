@@ -125,7 +125,10 @@ contract Staking is Ownable {
         totalStaked -= amount;
     }
 
-    function transferReward(uint256 amount, address recipient) external onlyCompound {
+    function transferReward(uint256 amount, address recipient)
+        external
+        onlyCompound
+    {
         stakedToken.transferFrom(address(this), recipient, amount);
     }
 
