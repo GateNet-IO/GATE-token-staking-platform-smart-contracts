@@ -13,11 +13,11 @@ contract Staking is Ownable {
         uint256 fee;
     }
 
-    uint256 minimumStake = 1000 * 1e18;
-    uint256 lockPeriod = 31 days;
+    uint256 public minimumStake = 1000 * 1e18;
+    uint256 public lockPeriod = 31 days;
 
     uint256 public totalStaked; // total amount of tokens staked
-    uint256 public rewardRate; // token rewards per day
+    uint256 public rewardRate; // token rewards per second
     uint256 public beginDate; // start date of rewards
     uint256 public endDate; // end date of rewards
     uint256 public lastUpdateTime;
@@ -115,12 +115,19 @@ contract Staking is Ownable {
         }
     }
 
-
     /* ========== RESTRICTED FUNCTIONS ========== */
 
-    function autoCompStake(uint256 _amount) external onlyCompound {}
+    function autoCompStake(uint256 amount) external onlyCompound {
+        totalStaked += amount;
+    }
 
-    function autoCompUnstake(uint256 _amount) external onlyCompound {}
+    function autoCompUnstake(uint256 amount) external onlyCompound {
+        totalStaked -= amount;
+    }
+
+    function transferReward(uint256 amount, address recipient) external onlyCompound {
+        stakedToken.transferFrom(address(this), recipient, amount);
+    }
 
     function setOnlyCompoundStaking(bool _onlyCompoundStaking)
         public
@@ -149,9 +156,10 @@ contract Staking is Ownable {
         }
         return
             rewardPerTokenStored +
-            (lastTimeRewardApplicable() -
-                ((lastUpdateTime) * (rewardRate) * (1e18)) /
-                (totalStaked));
+            ((lastTimeRewardApplicable() - lastUpdateTime) *
+                rewardRate *
+                1e18) /
+            totalStaked;
     }
 
     function pendingReward(address user) public view returns (uint256) {
