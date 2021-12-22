@@ -41,12 +41,10 @@ contract Staking is Ownable {
     /* ========== CONSTRUCTOR ========== */
 
     constructor(
-        address _compound,
         IERC20 _stakedToken,
         uint256 _beginDate,
         uint256 _endDate
     ) {
-        compound = _compound;
         stakedToken = _stakedToken;
         beginDate = _beginDate;
         endDate = _endDate;
@@ -116,6 +114,13 @@ contract Staking is Ownable {
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */
+
+    function addReward(uint256 amount) external onlyOwner {
+        rewardRate =
+            (stakedToken.balanceOf(address(this)) - totalStaked + amount) /
+            (endDate - block.timestamp);
+        stakedToken.transferFrom(msg.sender, address(this), amount);
+    }
 
     function autoCompStake(uint256 amount) external onlyCompound {
         totalStaked += amount;

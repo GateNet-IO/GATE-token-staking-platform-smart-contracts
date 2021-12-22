@@ -7,22 +7,23 @@ import "./Staking.sol";
 
 // compound once a day
 contract Compound is Ownable {
+    /* ========== STATE VARIABLES ========== */
+    
     struct UserInfo {
         uint256 shares; // number of shares for a user
         uint256 stakeTime; // time of user deposit
         uint256 fee;
     }
 
-    uint256 public totalStaked;
-    uint256 public rewardRate;
     uint256 public lastUpdateTime;
-    uint256 public lastUpdate;
     uint256 public shareWorth;
     uint256 public shares;
     IERC20 public stakedToken;
     Staking public staking;
 
     mapping(address => UserInfo[]) public userInfo;
+
+    /* ========== EVENTS ========== */
 
     event Deposit(
         address indexed sender,
@@ -33,14 +34,14 @@ contract Compound is Ownable {
     event Withdraw(address indexed sender, uint256 amount, uint256 shares);
     event Harvest(address indexed sender);
 
+    /* ========== CONSTRUCTOR ========== */
+
     constructor(IERC20 _stakedToken, address _staking) {
         stakedToken = _stakedToken;
         staking = Staking(_staking);
     }
 
-    function approve(uint256 amount) external onlyOwner {
-        stakedToken.approve(address(staking), amount);
-    }
+    /* ========== MUTATIVE FUNCTIONS ========== */
 
     function deposit(uint256 amount) external updateShareWorth {
         require(amount > 0, "Nothing to deposit");
@@ -54,13 +55,18 @@ contract Compound is Ownable {
         );
         staking.autoCompStake(amount);
         stakedToken.transferFrom(msg.sender, address(staking), amount);
-        //emit Deposit(msg.sender, amount, userInfo[msg.sender].shares, block.timestamp);
+        emit Deposit(msg.sender, amount, currentAmount(msg.sender), block.timestamp);
     }
 
-    function withdrawAll() external {}
-
-    function harvest() public updateShareWorth {
-        emit Harvest(msg.sender);
+    function withdrawAll() external {
+        for (uint256 i = 0; i < userInfo[msg.sender].length; i++) {
+            if (
+                userInfo[msg.sender][i].stakeTime + staking.lockPeriod() <=
+                block.timestamp
+            ) {
+                withdraw(userInfo[msg.sender][i].shares, i);
+            }
+        }
     }
 
     function withdraw(uint256 _shares, uint256 index) public updateShareWorth {
@@ -73,21 +79,44 @@ contract Compound is Ownable {
         shares -= _shares;
         staking.autoCompUnstake(_shares * shareWorth);
         staking.transferReward(_shares * shareWorth, msg.sender);
-        //emit Withdraw(msg.sender, currentAmount, _shares);
+        emit Withdraw(msg.sender, currentAmount(msg.sender), _shares);
+    }
+
+    /* ========== RESTRICTED FUNCTIONS ========== */
+
+    function approve(uint256 amount) external onlyOwner {
+        stakedToken.approve(address(staking), amount);
+    }
+
+    function harvest() public updateShareWorth {
+        emit Harvest(msg.sender);
+    }
+
+    /* ========== VIEWS ========== */
+
+    function currentAmount(address user) public view returns(uint256) {
+        uint256 amount;
+        for (uint256 i = 0; i < userInfo[user].length; i++) {
+            amount += userInfo[msg.sender][i].shares;
+        }
+        return amount;
     }
 
     function available() public view returns (uint256) {}
 
     function balanceOf() public returns (uint256) {}
 
+    /* ========== MODIFIERS ========== */
+
     modifier updateShareWorth() {
         uint256 placeHolder = shareWorth;
         shareWorth *=
             1 +
-            ((staking.lastTimeRewardApplicable() - staking.lastUpdateTime()) *
+            ((staking.lastTimeRewardApplicable() - lastUpdateTime) *
                 staking.rewardRate() *
                 1e18) /
-            totalStaked;
+            staking.totalStaked();
+
         lastUpdateTime = staking.lastTimeRewardApplicable();
         staking.autoCompStake(shares * (shareWorth - placeHolder));
         _;

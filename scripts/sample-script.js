@@ -14,12 +14,56 @@ async function main() {
   // await hre.run('compile');
 
   // We get the contract to deploy
-  const Greeter = await hre.ethers.getContractFactory("Greeter");
-  const greeter = await Greeter.deploy("Hello, Hardhat!");
+  const GateToken = await hre.ethers.getContractFactory("GateToken");
+  const gatetoken = await GateToken.deploy();
 
-  await greeter.deployed();
+  await gatetoken.deployed();
+  console.log(gatetoken.address);
 
-  console.log("Greeter deployed to:", greeter.address);
+  let end = new Date();
+  end.setDate(end.getDate() + 31); 
+  const End = Math.floor(end.getTime() / 1000);
+  let start = new Date();
+  start.setDate(start.getDate());
+  const Start = Math.floor(start.getTime() / 1000);
+
+  const Staking = await hre.ethers.getContractFactory("Staking");
+  const staking = await Staking.deploy(gatetoken.address, Start, End);
+
+  await staking.deployed();
+  console.log(staking.address);
+
+  const Compound = await hre.ethers.getContractFactory("Compound");
+  const compound = await Compound.deploy(gatetoken.address, staking.address);
+
+  await compound.deployed();
+  console.log(compound.address);
+
+  await hre.run("verify:verify", {
+    address: gatetoken.address,
+    constructorArguments: [
+    ],
+    contract: "contracts/GateToken.sol:GateToken"
+  });
+
+  await hre.run("verify:verify", {
+    address: compound.address,
+    constructorArguments: [
+      gatetoken.address, 
+      staking.address
+    ],
+    contract: "contracts/Compound.sol:Compound"
+  });
+
+  await hre.run("verify:verify", {
+    address: staking.address,
+    constructorArguments: [
+      gatetoken.address, 
+      Start, 
+      End
+    ],
+    contract: "contracts/Staking.sol:Staking"
+  });
 }
 
 // We recommend this pattern to be able to use async/await everywhere
