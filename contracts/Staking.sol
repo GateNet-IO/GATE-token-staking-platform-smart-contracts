@@ -79,7 +79,9 @@ contract Staking is Ownable {
         uint256 reward = rewards[msg.sender];
 
         for (uint256 i = 0; i < stakes[msg.sender].length; i++) {
-            reward += stakes[msg.sender][i].amount * (feePerToken - stakes[msg.sender][i].fee);
+            reward +=
+                stakes[msg.sender][i].amount *
+                (feePerToken - stakes[msg.sender][i].fee);
             stakes[msg.sender][i].fee = feePerToken;
         }
 
@@ -105,7 +107,9 @@ contract Staking is Ownable {
         );
         totalStaked -= amount;
         stakes[msg.sender][index].amount -= amount;
-        fees[msg.sender] += amount * (feePerToken - stakes[msg.sender][index].fee);
+        fees[msg.sender] +=
+            amount *
+            (feePerToken - stakes[msg.sender][index].fee);
         stakedToken.transferFrom(msg.sender, address(this), amount);
         emit Unstaked(msg.sender, amount, index);
     }
@@ -155,9 +159,11 @@ contract Staking is Ownable {
         uint256 amount = fees[user];
 
         for (uint256 i = 0; i < stakes[user].length; i++) {
-            amount += stakes[user][i].amount * (feePerToken - stakes[user][i].fee);
+            amount +=
+                stakes[user][i].amount *
+                (feePerToken - stakes[user][i].fee);
         }
-        
+
         return amount;
     }
 
