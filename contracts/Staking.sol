@@ -152,6 +152,13 @@ contract Staking is Ownable {
     }
 
     function pendingFee(address user) public view returns (uint256) {
+        uint256 amount = fees[user];
+
+        for (uint256 i = 0; i < stakes[user].length; i++) {
+            amount += stakes[user][i].amount * (feePerToken - stakes[user][i].fee);
+        }
+        
+        return amount;
     }
 
     modifier distributeReward(address account) {
