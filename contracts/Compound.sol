@@ -66,7 +66,7 @@ contract Compound is Ownable {
         );
         emit Deposit(
             msg.sender,
-            amount,
+            (amount / shareWorth) * shareWorth,
             currentAmount(msg.sender),
             block.timestamp
         );
