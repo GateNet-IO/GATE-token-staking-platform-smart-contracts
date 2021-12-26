@@ -17,7 +17,6 @@ contract Staking is Ownable {
     uint256 public minimumStake = 1000 ether;
     uint256 public lockPeriod = 31 days;
 
-    uint256 public compounded;
     uint256 public totalStaked; // total amount of tokens staked
     uint256 public rewardRate; // token rewards per second
     uint256 public beginDate; // start date of rewards
@@ -68,15 +67,21 @@ contract Staking is Ownable {
         emit Staked(msg.sender, amount);
     }
 
+    function calculateFees(address user) internal {
+        for (uint256 i = 0; i < stakes[user].length; i++) {
+            fees[user] +=
+                ((stakes[user][i].amount) *
+                    (feePerToken - stakes[user][i].fee)) /
+                1 ether;
+            stakes[user][i].fee = feePerToken;
+        }
+    }
+
     function claim() external started distributeReward(msg.sender) {
         uint256 reward = rewards[msg.sender];
 
-        for (uint256 i = 0; i < stakes[msg.sender].length; i++) {
-            reward +=
-                (stakes[msg.sender][i].amount) *
-                (feePerToken - stakes[msg.sender][i].fee) / 1 ether;
-            stakes[msg.sender][i].fee = feePerToken;
-        }
+        calculateFees(msg.sender);
+        compound.calculateFees(msg.sender);
 
         reward += fees[msg.sender];
         fees[msg.sender] = 0;
@@ -102,8 +107,8 @@ contract Staking is Ownable {
         totalStaked -= amount;
         stakes[msg.sender][index].amount -= amount;
         fees[msg.sender] +=
-            (amount) *
-            (feePerToken - stakes[msg.sender][index].fee)  / 1 ether;
+            ((amount) * (feePerToken - stakes[msg.sender][index].fee)) /
+            1 ether;
         stakedToken.transferFrom(msg.sender, address(this), amount);
         emit Unstaked(msg.sender, amount, index);
     }
@@ -135,12 +140,10 @@ contract Staking is Ownable {
 
     function autoCompStake(uint256 amount) external onlyCompound {
         totalStaked += amount;
-        compounded += amount;
     }
 
     function autoCompUnstake(uint256 amount) external onlyCompound {
         totalStaked -= amount;
-        compounded -= amount;
     }
 
     function transferReward(uint256 amount, address recipient)
@@ -162,16 +165,13 @@ contract Staking is Ownable {
     }
 
     function feeDistribution(uint256 amount) external onlyOwner {
-        feePerToken += (amount * 1 ether) / (totalStaked - compounded);
+        feePerToken += (amount * 1 ether) / (totalStaked);
         stakedToken.transferFrom(
             msg.sender,
             address(this),
-            feePerToken * (totalStaked - compounded)
+            feePerToken * (totalStaked)
         );
-        emit FeeDistributed(
-            block.number,
-            feePerToken * (totalStaked - compounded)
-        );
+        emit FeeDistributed(block.number, feePerToken * (totalStaked));
     }
 
     /* ========== VIEWS ========== */
@@ -214,8 +214,9 @@ contract Staking is Ownable {
 
         for (uint256 i = 0; i < stakes[user].length; i++) {
             amount +=
-                (stakes[user][i].amount) *
-                (feePerToken - stakes[user][i].fee) / 1 ether;
+                ((stakes[user][i].amount) *
+                    (feePerToken - stakes[user][i].fee)) /
+                1 ether;
         }
 
         return amount;
@@ -232,6 +233,7 @@ contract Staking is Ownable {
     /* ========== MODIFIERS ========== */
 
     modifier distributeReward(address account) {
+        compound.harvest();
         rewardPerTokenStored = rewardPerToken();
         lastUpdateTime = lastTimeRewardApplicable();
         if (account != address(0)) {

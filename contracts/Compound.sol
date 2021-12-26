@@ -10,7 +10,7 @@ contract Compound is Ownable {
     /* ========== STATE VARIABLES ========== */
 
     struct UserInfo {
-        uint256 shareworth;
+        uint256 sharePrice;
         uint256 shares; // number of shares for a user
         uint256 stakeTime; // time of user deposit
         uint256 fee;
@@ -41,6 +41,7 @@ contract Compound is Ownable {
         stakedToken = _stakedToken;
         staking = Staking(_staking);
         lastUpdateTime = staking.beginDate();
+
         shareWorth = 1;
     }
 
@@ -90,13 +91,25 @@ contract Compound is Ownable {
 
         staking.addFee(
             msg.sender,
-            ((_shares * userInfo[msg.sender][index].shareworth)) *
-                (staking.feePerToken() - userInfo[msg.sender][index].fee) / 1 ether
+            (_shares *
+                userInfo[msg.sender][index].sharePrice *
+                (staking.feePerToken() - userInfo[msg.sender][index].fee)) /
+                1 ether
         );
 
         staking.autoCompUnstake(_shares * shareWorth);
         staking.transferReward(_shares * shareWorth, msg.sender);
         emit Withdraw(msg.sender, currentAmount(msg.sender), _shares);
+    }
+
+    function calculateFees(address user) external{
+        for (uint256 i = 0; i < userInfo[user].length; i++) {
+            staking.addFee(user,
+                ((userInfo[user][i].shares * userInfo[user][i].sharePrice) *
+                    (staking.feePerToken() - userInfo[user][i].fee)) /
+                1 ether);
+            userInfo[user][i].fee = staking.feePerToken();
+        }
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */
