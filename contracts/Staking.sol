@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -14,8 +14,8 @@ contract Staking is Ownable {
         uint256 fee;
     }
 
-    uint256 public minimumStake = 1000 ether;
-    uint256 public lockPeriod = 31 days;
+    uint256 public constant MINIMUM_STAKE = 1000 ether;
+    uint256 public constant LOCK_PERIOD = 31 days;
 
     uint256 public totalStaked; // total amount of tokens staked
     uint256 public rewardRate; // token rewards per second
@@ -59,8 +59,8 @@ contract Staking is Ownable {
         started
         distributeReward(msg.sender)
     {
-        require(amount >= minimumStake, "Stake too small");
-        require(!onlyCompoundStaking);
+        require(amount >= MINIMUM_STAKE, "Stake too small");
+        require(!onlyCompoundStaking, "Only auto-compound staking allowed");
         totalStaked += amount;
         stakes[msg.sender].push(Stake(amount, block.timestamp, feePerToken));
         stakedToken.transferFrom(msg.sender, address(this), amount);
@@ -101,9 +101,11 @@ contract Staking is Ownable {
         require(amount > 0, "Cannot unstake 0");
         require(amount <= stakes[msg.sender][index].amount, "Stake too big");
         require(
-            stakes[msg.sender][index].stakeTime + lockPeriod <= block.timestamp
+            stakes[msg.sender][index].stakeTime + LOCK_PERIOD <= block.timestamp,
+            "Minimum lock period hasn't passed"
         );
-        require(!onlyCompoundStaking);
+        require(!onlyCompoundStaking, "Only auto-compound staking allowed");
+
         totalStaked -= amount;
         stakes[msg.sender][index].amount -= amount;
         fees[msg.sender] +=
@@ -116,7 +118,7 @@ contract Staking is Ownable {
     function unstakeAll() external started {
         for (uint256 i = 0; i < stakes[msg.sender].length; i++) {
             if (
-                stakes[msg.sender][i].stakeTime + lockPeriod <= block.timestamp
+                stakes[msg.sender][i].stakeTime + LOCK_PERIOD <= block.timestamp
             ) {
                 unstake(stakes[msg.sender][i].amount, i);
             }
@@ -130,6 +132,7 @@ contract Staking is Ownable {
     }
 
     function addReward(uint256 amount) external onlyOwner {
+        require(amount > 0, "Cannot add 0 reward");
         rewardRate += (amount) / (endDate - firstTimeRewardApplicable());
         stakedToken.transferFrom(
             msg.sender,
@@ -140,10 +143,15 @@ contract Staking is Ownable {
 
     function autoCompStake(uint256 amount) external onlyCompound {
         totalStaked += amount;
+        emit Staked(tx.origin, amount);
     }
 
-    function autoCompUnstake(uint256 amount) external onlyCompound {
+    function autoCompUnstake(uint256 amount, uint256 index)
+        external
+        onlyCompound
+    {
         totalStaked -= amount;
+        emit Unstaked(tx.origin, amount, index);
     }
 
     function transferReward(uint256 amount, address recipient)
@@ -154,17 +162,18 @@ contract Staking is Ownable {
     }
 
     function setOnlyCompoundStaking(bool _onlyCompoundStaking)
-        public
+        external
         onlyOwner
     {
         onlyCompoundStaking = _onlyCompoundStaking;
     }
 
-    function setCompoundAddress(address _compound) public onlyOwner {
+    function setCompoundAddress(address _compound) external onlyOwner {
         compound = Compound(_compound);
     }
 
     function feeDistribution(uint256 amount) external onlyOwner {
+        require(amount > 0, "Cannot distribute 0 fee");
         feePerToken += (amount * 1 ether) / (totalStaked);
         stakedToken.transferFrom(
             msg.sender,
@@ -209,7 +218,7 @@ contract Staking is Ownable {
             (rewards[user]);
     }
 
-    function pendingFee(address user) public view returns (uint256) {
+    function pendingFee(address user) external view returns (uint256) {
         uint256 amount = fees[user];
 
         for (uint256 i = 0; i < stakes[user].length; i++) {
@@ -222,11 +231,11 @@ contract Staking is Ownable {
         return amount;
     }
 
-    function getUserStakes(address user) public view returns (Stake[] memory) {
+    function getUserStakes(address user) external view returns (Stake[] memory) {
         return stakes[user];
     }
 
-    function totalUserStakes(address _user) public view returns (uint256) {
+    function totalUserStakes(address _user) external view returns (uint256) {
         return stakes[_user].length;
     }
 
@@ -244,12 +253,12 @@ contract Staking is Ownable {
     }
 
     modifier started() {
-        require(block.timestamp >= beginDate);
+        require(block.timestamp >= beginDate, "Stake period hasn't started");
         _;
     }
 
     modifier onlyCompound() {
-        require(msg.sender == address(compound), "Staking::Only compound");
+        require(msg.sender == address(compound), "Only compound");
         _;
     }
 }

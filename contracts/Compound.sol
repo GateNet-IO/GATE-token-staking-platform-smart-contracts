@@ -1,5 +1,5 @@
 //SPDX-License-Identifier: Unlicense
-pragma solidity ^0.8.0;
+pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
@@ -47,8 +47,8 @@ contract Compound is Ownable {
 
     /* ========== MUTATIVE FUNCTIONS ========== */
 
-    function deposit(uint256 amount) external updateShareWorth {
-        require(amount >= staking.minimumStake(), "Stake too small");
+    function deposit(uint256 amount) external started updateShareWorth {
+        require(amount >= staking.MINIMUM_STAKE(), "Stake too small");
         shares += amount / shareWorth;
         userInfo[msg.sender].push(
             UserInfo(
@@ -71,7 +71,7 @@ contract Compound is Ownable {
     function withdrawAll() external {
         for (uint256 i = 0; i < userInfo[msg.sender].length; i++) {
             if (
-                userInfo[msg.sender][i].stakeTime + staking.lockPeriod() <=
+                userInfo[msg.sender][i].stakeTime + staking.LOCK_PERIOD() <=
                 block.timestamp
             ) {
                 withdraw(userInfo[msg.sender][i].shares, i);
@@ -79,12 +79,17 @@ contract Compound is Ownable {
         }
     }
 
-    function withdraw(uint256 _shares, uint256 index) public updateShareWorth {
-        require(shares > 0, "Cannot unstake 0");
-        require(shares <= userInfo[msg.sender][index].shares, "Stake too big");
+    function withdraw(uint256 _shares, uint256 index)
+        public
+        started
+        updateShareWorth
+    {
+        require(_shares > 0, "Cannot unstake 0");
+        require(_shares <= userInfo[msg.sender][index].shares, "Stake too big");
         require(
-            userInfo[msg.sender][index].stakeTime + staking.lockPeriod() <=
-                block.timestamp
+            userInfo[msg.sender][index].stakeTime + staking.LOCK_PERIOD() <=
+                block.timestamp,
+            "Minimum lock period hasn't passed"
         );
         shares -= _shares;
         userInfo[msg.sender][index].shares -= _shares;
@@ -97,17 +102,18 @@ contract Compound is Ownable {
                 1 ether
         );
 
-        staking.autoCompUnstake(_shares * shareWorth);
+        staking.autoCompUnstake(_shares * shareWorth, index);
         staking.transferReward(_shares * shareWorth, msg.sender);
         emit Withdraw(msg.sender, currentAmount(msg.sender), _shares);
     }
 
-    function calculateFees(address user) external{
+    function calculateFees(address user) external {
         for (uint256 i = 0; i < userInfo[user].length; i++) {
-            staking.addFee(user,
+            staking.addFee(
+                user,
                 ((userInfo[user][i].shares * userInfo[user][i].sharePrice) *
-                    (staking.feePerToken() - userInfo[user][i].fee)) /
-                1 ether);
+                    (staking.feePerToken() - userInfo[user][i].fee)) / 1 ether
+            );
             userInfo[user][i].fee = staking.feePerToken();
         }
     }
@@ -115,10 +121,11 @@ contract Compound is Ownable {
     /* ========== RESTRICTED FUNCTIONS ========== */
 
     function approve(uint256 amount) external onlyOwner {
+        require(amount > 0, "Cannot approve 0");
         stakedToken.approve(address(staking), amount);
     }
 
-    function harvest() public updateShareWorth {
+    function harvest() external started updateShareWorth {
         emit Harvest(msg.sender);
     }
 
@@ -132,9 +139,9 @@ contract Compound is Ownable {
         return amount;
     }
 
-    function available() public view returns (uint256) {}
+    //function available() public view returns (uint256) {}
 
-    function balanceOf() public returns (uint256) {}
+    //function balanceOf() public returns (uint256) {}
 
     /* ========== MODIFIERS ========== */
 
@@ -159,6 +166,14 @@ contract Compound is Ownable {
                 (staking.lastTimeRewardApplicable() / 86400) *
                 86400;
         }
+        _;
+    }
+
+    modifier started() {
+        require(
+            block.timestamp >= staking.beginDate(),
+            "Stake period hasn't started"
+        );
         _;
     }
 }

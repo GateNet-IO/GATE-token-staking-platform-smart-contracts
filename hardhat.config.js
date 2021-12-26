@@ -11,7 +11,7 @@ require('dotenv').config();
 
 
 module.exports = {
-  solidity: "0.8.4",
+  solidity: "0.8.9",
   networks: {
     rinkeby: {
       url: process.env.ALCHEMY_URL, //Infura url with projectId
