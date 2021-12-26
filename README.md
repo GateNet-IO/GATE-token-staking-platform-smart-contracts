@@ -1,15 +1,11 @@
-# Basic Sample Hardhat Project
+# GATE smart contracts
 
-This project demonstrates a basic Hardhat use case. It comes with a sample contract, a test for that contract, a sample script that deploys that contract, and an example of a task implementation, which simply lists the available accounts.
+Staking/Rewards and Governance Platform
 
-Try running some of the following tasks:
+## .env file
+ETHERSCAN_API: get at etherscan.com<br />
+PRIVATE_KEY: ethereum wallet private key<br />
+ALCHEMY_URL: infura / alchemy url
 
-```shell
-npx hardhat accounts
-npx hardhat compile
-npx hardhat clean
-npx hardhat test
-npx hardhat node
-node scripts/sample-script.js
-npx hardhat help
-```
+## compiling smart contracts
+```npx hardhat compile```
