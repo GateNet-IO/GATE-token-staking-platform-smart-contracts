@@ -4,7 +4,6 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Compound.sol";
-import "hardhat/console.sol";
 
 contract Staking is Ownable {
     /* ========== STATE VARIABLES ========== */
@@ -74,15 +73,13 @@ contract Staking is Ownable {
 
         for (uint256 i = 0; i < stakes[msg.sender].length; i++) {
             reward +=
-                (stakes[msg.sender][i].amount / 1 ether) *
-                (feePerToken - stakes[msg.sender][i].fee);
+                (stakes[msg.sender][i].amount) *
+                (feePerToken - stakes[msg.sender][i].fee) / 1 ether;
             stakes[msg.sender][i].fee = feePerToken;
         }
 
         reward += fees[msg.sender];
         fees[msg.sender] = 0;
-
-        console.log(reward);
 
         if (reward > 0) {
             rewards[msg.sender] = 0;
@@ -105,8 +102,8 @@ contract Staking is Ownable {
         totalStaked -= amount;
         stakes[msg.sender][index].amount -= amount;
         fees[msg.sender] +=
-            (amount / 1 ether) *
-            (feePerToken - stakes[msg.sender][index].fee);
+            (amount) *
+            (feePerToken - stakes[msg.sender][index].fee)  / 1 ether;
         stakedToken.transferFrom(msg.sender, address(this), amount);
         emit Unstaked(msg.sender, amount, index);
     }
@@ -129,13 +126,16 @@ contract Staking is Ownable {
 
     function addReward(uint256 amount) external onlyOwner {
         rewardRate += (amount) / (endDate - firstTimeRewardApplicable());
-        stakedToken.transferFrom(msg.sender, address(this), amount);
+        stakedToken.transferFrom(
+            msg.sender,
+            address(this),
+            (amount) * (endDate - firstTimeRewardApplicable())
+        );
     }
 
     function autoCompStake(uint256 amount) external onlyCompound {
         totalStaked += amount;
         compounded += amount;
-        emit Staked(tx.origin, amount);
     }
 
     function autoCompUnstake(uint256 amount) external onlyCompound {
@@ -147,7 +147,7 @@ contract Staking is Ownable {
         external
         onlyCompound
     {
-        stakedToken.transferFrom(address(this), recipient, amount);
+        stakedToken.transfer(recipient, amount);
     }
 
     function setOnlyCompoundStaking(bool _onlyCompoundStaking)
@@ -202,6 +202,7 @@ contract Staking is Ownable {
         for (uint256 i = 0; i < stakes[user].length; i++) {
             amount += stakes[user][i].amount;
         }
+
         return
             (amount * (rewardPerToken() - (userRewardPerTokenPaid[user]))) /
             (1e18) +
@@ -213,8 +214,8 @@ contract Staking is Ownable {
 
         for (uint256 i = 0; i < stakes[user].length; i++) {
             amount +=
-                (stakes[user][i].amount / 1 ether) *
-                (feePerToken - stakes[user][i].fee);
+                (stakes[user][i].amount) *
+                (feePerToken - stakes[user][i].fee) / 1 ether;
         }
 
         return amount;

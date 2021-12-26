@@ -90,9 +90,8 @@ contract Compound is Ownable {
 
         staking.addFee(
             msg.sender,
-            _shares *
-                userInfo[msg.sender][index].shareworth *
-                (staking.feePerToken() - userInfo[msg.sender][index].fee)
+            ((_shares * userInfo[msg.sender][index].shareworth)) *
+                (staking.feePerToken() - userInfo[msg.sender][index].fee) / 1 ether
         );
 
         staking.autoCompUnstake(_shares * shareWorth);
@@ -128,16 +127,24 @@ contract Compound is Ownable {
 
     modifier updateShareWorth() {
         if (staking.totalStaked() > 0) {
-            uint256 placeHolder = shareWorth;
-            shareWorth *=
-                1 +
-                ((staking.lastTimeRewardApplicable() - lastUpdateTime) *
-                    staking.rewardRate() *
-                    1e18) /
-                staking.totalStaked();
+            for (
+                uint256 i = 0;
+                i <
+                (staking.lastTimeRewardApplicable() - lastUpdateTime) / 86400;
+                i++
+            ) {
+                uint256 placeHolder = shareWorth;
+                shareWorth +=
+                    shareWorth *
+                    ((86400 * staking.rewardRate() * 1e18) /
+                        staking.totalStaked());
 
-            lastUpdateTime = staking.lastTimeRewardApplicable();
-            staking.autoCompStake(shares * (shareWorth - placeHolder));
+                staking.autoCompStake(shares * (shareWorth - placeHolder));
+            }
+
+            lastUpdateTime =
+                (staking.lastTimeRewardApplicable() / 86400) *
+                86400;
         }
         _;
     }
