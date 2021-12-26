@@ -59,7 +59,11 @@ contract Compound is Ownable {
             )
         );
         staking.autoCompStake(amount);
-        stakedToken.transferFrom(msg.sender, address(staking), amount);
+        stakedToken.transferFrom(
+            msg.sender,
+            address(staking),
+            (amount / shareWorth) * shareWorth
+        );
         emit Deposit(
             msg.sender,
             amount,
