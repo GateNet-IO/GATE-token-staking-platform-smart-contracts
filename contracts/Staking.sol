@@ -101,7 +101,8 @@ contract Staking is Ownable {
         require(amount > 0, "Cannot unstake 0");
         require(amount <= stakes[msg.sender][index].amount, "Stake too big");
         require(
-            stakes[msg.sender][index].stakeTime + LOCK_PERIOD <= block.timestamp,
+            stakes[msg.sender][index].stakeTime + LOCK_PERIOD <=
+                block.timestamp,
             "Minimum lock period hasn't passed"
         );
         require(!onlyCompoundStaking, "Only auto-compound staking allowed");
@@ -137,7 +138,8 @@ contract Staking is Ownable {
         stakedToken.transferFrom(
             msg.sender,
             address(this),
-            (amount) * (endDate - firstTimeRewardApplicable())
+            ((amount) / (endDate - firstTimeRewardApplicable())) *
+                (endDate - firstTimeRewardApplicable())
         );
     }
 
@@ -181,7 +183,10 @@ contract Staking is Ownable {
             (feePerToken * (totalStaked)) / 1 ether
         );
 
-        emit FeeDistributed(block.number, (feePerToken * (totalStaked)) / 1 ether);
+        emit FeeDistributed(
+            block.number,
+            (feePerToken * (totalStaked)) / 1 ether
+        );
     }
 
     /* ========== VIEWS ========== */
@@ -232,7 +237,11 @@ contract Staking is Ownable {
         return amount;
     }
 
-    function getUserStakes(address user) external view returns (Stake[] memory) {
+    function getUserStakes(address user)
+        external
+        view
+        returns (Stake[] memory)
+    {
         return stakes[user];
     }
 
