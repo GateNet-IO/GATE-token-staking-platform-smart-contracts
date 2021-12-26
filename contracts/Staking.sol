@@ -4,6 +4,7 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Compound.sol";
+import "hardhat/console.sol";
 
 contract Staking is Ownable {
     /* ========== STATE VARIABLES ========== */
@@ -178,9 +179,10 @@ contract Staking is Ownable {
         stakedToken.transferFrom(
             msg.sender,
             address(this),
-            feePerToken * (totalStaked)
+            (feePerToken * (totalStaked)) / 1 ether
         );
-        emit FeeDistributed(block.number, feePerToken * (totalStaked));
+
+        emit FeeDistributed(block.number, (feePerToken * (totalStaked)) / 1 ether);
     }
 
     /* ========== VIEWS ========== */
