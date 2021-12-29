@@ -361,4 +361,51 @@ describe("Staking contract: ", function () {
             }
         });
     });
+
+    describe("not compound: ", async function () {
+        describe("addFee: ", async function () {
+            it("Should revert", async () => {
+                try {
+                    await staking.addFee(accounts[0].address, 0);
+                } catch (error) {
+                    expect(error.message).to.equal(
+                        "VM Exception while processing transaction: reverted with reason string 'Only compound'"
+                    );
+                }
+            });
+        });
+        describe("autoCompStake: ", async function () {
+            it("Should revert", async () => {
+                try {
+                    await staking.autoCompStake(0);
+                } catch (error) {
+                    expect(error.message).to.equal(
+                        "VM Exception while processing transaction: reverted with reason string 'Only compound'"
+                    );
+                }
+            });
+        });
+        describe("autoCompUnstake: ", async function () {
+            it("Should revert", async () => {
+                try {
+                    await staking.autoCompUnstake(0, 0);
+                } catch (error) {
+                    expect(error.message).to.equal(
+                        "VM Exception while processing transaction: reverted with reason string 'Only compound'"
+                    );
+                }
+            });
+        });
+        describe("transferReward: ", async function () {
+            it("Should revert", async () => {
+                try {
+                    await staking.transferReward(0, accounts[0].address);
+                } catch (error) {
+                    expect(error.message).to.equal(
+                        "VM Exception while processing transaction: reverted with reason string 'Only compound'"
+                    );
+                }
+            });
+        });
+    });
 });
