@@ -80,6 +80,7 @@ contract Staking is Ownable {
 
     function claim() external started distributeReward(msg.sender) {
         uint256 reward = rewards[msg.sender];
+
         calculateFees(msg.sender);
         compound.calculateFees(msg.sender);
 
@@ -181,12 +182,12 @@ contract Staking is Ownable {
         stakedToken.transferFrom(
             msg.sender,
             address(this),
-            amount
+            (amount * 1 ether) / (totalStaked) * totalStaked / 1 ether
         );
 
         emit FeeDistributed(
             block.timestamp,
-            amount
+            (amount * 1 ether) / (totalStaked) * totalStaked / 1 ether
         );
     }
 

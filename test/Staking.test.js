@@ -81,17 +81,17 @@ describe("Staking contract: ", function() {
 
     describe("Claim: ", async function () {
         it("Should claim all fees if only staker", async () => {
-            console.log(await gatetoken.balanceOf(accounts[0].address))
             await gatetoken.approve(staking.address, BigInt(100000000000000e18));
             await staking.stake(BigInt(1000000e18));
+
+            let balance = await gatetoken.balanceOf(accounts[0].address)
+
             await staking.feeDistribution(BigInt(9e18));
-
-            console.log(await gatetoken.balanceOf(accounts[0].address))
-
             await network.provider.send("evm_increaseTime", [3600])
             await network.provider.send("evm_mine", [])
             await staking.claim()
-            console.log(await gatetoken.balanceOf(accounts[0].address))
+
+            expect(balance).to.equal(await gatetoken.balanceOf(accounts[0].address))
         });
     })
 });
