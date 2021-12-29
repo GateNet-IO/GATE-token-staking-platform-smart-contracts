@@ -38,6 +38,47 @@ describe("Staking contract: ", function () {
             await network.provider.send("evm_mine", []);
         });
 
+        describe("Unstaking: ", async function () {
+            it("Should revert on 0 unstake", async function () {
+                await gatetoken.approve(staking.address, BigInt(1000e18));
+                await staking.stake(BigInt(1000e18));
+
+                try {
+                    await staking.unstake(0, 0);
+                } catch (error) {
+                    expect(error.message).to.equal(
+                        "VM Exception while processing transaction: reverted with reason string 'Cannot unstake 0'"
+                    );
+                }
+            });
+
+            it("Should revert on stake too big", async function () {
+                await gatetoken.approve(staking.address, BigInt(1000e18));
+                await staking.stake(BigInt(1000e18));
+
+                try {
+                    await staking.unstake(BigInt(2000e18), 0);
+                } catch (error) {
+                    expect(error.message).to.equal(
+                        "VM Exception while processing transaction: reverted with reason string 'Stake too big'"
+                    );
+                }
+            });
+
+            it("Should revert on minimum period not passed", async function () {
+                await gatetoken.approve(staking.address, BigInt(1000e18));
+                await staking.stake(BigInt(1000e18));
+
+                try {
+                    await staking.unstake(BigInt(1000e18), 0);
+                } catch (error) {
+                    expect(error.message).to.equal(
+                        "VM Exception while processing transaction: reverted with reason string 'Minimum lock period hasn't passed'"
+                    );
+                }
+            });
+        });
+
         describe("Staking: ", async function () {
             it("Should revert on non approved stake", async function () {
                 try {
@@ -155,6 +196,18 @@ describe("Staking contract: ", function () {
                 expect(await staking.pendingFee(accounts[0].address)).to.equal(
                     amount
                 );
+            });
+        });
+
+        describe("feeDistribution: ", async function () {
+            it("Should revert on 0 fee", async () => {
+                try {
+                    await staking.feeDistribution(BigInt(0));
+                } catch (error) {
+                    expect(error.message).to.equal(
+                        "VM Exception while processing transaction: reverted with reason string 'Cannot distribute 0 fee'"
+                    );
+                }
             });
         });
 

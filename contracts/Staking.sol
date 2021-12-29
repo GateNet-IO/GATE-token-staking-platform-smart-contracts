@@ -97,7 +97,6 @@ contract Staking is Ownable {
                 block.timestamp,
             "Minimum lock period hasn't passed"
         );
-        require(!onlyCompoundStaking, "Only auto-compound staking allowed");
 
         totalStaked -= amount;
         stakes[msg.sender][index].amount -= amount;
