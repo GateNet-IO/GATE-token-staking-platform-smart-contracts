@@ -146,4 +146,30 @@ describe("Staking contract: ", function() {
             expect(await gatetoken.balanceOf(staking.address)).to.equal(amount);
         });
     });
+
+    describe("setOnlyCompoundStaking: ", async function () {
+        it("Should prevent non compound staking", async () => {
+            staking.setOnlyCompoundStaking(true);
+            await gatetoken.approve(staking.address, BigInt(100000000000000e18));
+
+            try {
+                await staking.stake(BigInt(1000000e18));
+            }
+            catch(error) {
+                expect(error.message).to.equal("VM Exception while processing transaction: reverted with reason string 'Only auto-compound staking allowed'");
+            }
+        });
+
+        it("Should allow non compound staking", async () => {
+            staking.setOnlyCompoundStaking(false);
+            await gatetoken.approve(staking.address, BigInt(100000000000000e18));
+
+            try {
+                await staking.stake(BigInt(1000000e18));
+            }
+            catch (error) {
+                expect(error.message).to.equal("");
+            }
+        });
+    });
 });

@@ -2,6 +2,7 @@ require("@nomiclabs/hardhat-waffle");
 require("@nomiclabs/hardhat-etherscan");
 require('dotenv').config();
 require("solidity-coverage")
+require("@nomiclabs/hardhat-solhint");
 
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
