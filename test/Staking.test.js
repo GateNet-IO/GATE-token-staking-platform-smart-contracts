@@ -20,7 +20,7 @@ describe("Staking contract: ", function () {
         const Staking = await hre.ethers.getContractFactory("Staking");
         staking = await Staking.deploy(
             gatetoken.address,
-            latestBlock.timestamp,
+            latestBlock.timestamp + 60,
             latestBlock.timestamp + 24 * 60 * 60 * 30
         );
 
@@ -32,199 +32,244 @@ describe("Staking contract: ", function () {
         await compound.deployed();
         staking.setCompoundAddress(compound.address);
     });
-
-    describe("Staking: ", async function () {
-        it("Should revert on non approved stake", async function () {
-            try {
-                await staking.stake(BigInt(1000e18));
-            } catch (error) {
-                expect(error.message).to.equal(
-                    "VM Exception while processing transaction: reverted with reason string 'ERC20: transfer amount exceeds allowance'"
-                );
-            }
-        });
-
-        it("Should emit stake event with correct args", async function () {
-            await gatetoken.approve(staking.address, BigInt(1000e18));
-
-            expect(await staking.stake(BigInt(1000e18)))
-                .to.emit(staking, "Staked")
-                .withArgs(accounts[0].address, BigInt(1000e18));
-        });
-        //
-        it("Should revert on too little stake", async function () {
-            await gatetoken.approve(staking.address, 1);
-
-            try {
-                await staking.stake(1);
-            } catch (error) {
-                expect(error.message).to.equal(
-                    "VM Exception while processing transaction: reverted with reason string 'Stake too small'"
-                );
-            }
-        });
-        //
-        it("Should not revert on minimum stake", async function () {
-            await gatetoken.approve(staking.address, BigInt(1000e18));
-
-            try {
-                await staking.stake(BigInt(1000e18));
-            } catch (error) {
-                expect(error.message).to.equal("");
-            }
-        });
-    });
-
-    describe("Claim: ", async function () {
-        it("Should claim all fees if only staker", async () => {
-            await gatetoken.approve(
-                staking.address,
-                BigInt(100000000000000e18)
-            );
-            await staking.stake(BigInt(1000000e18));
-
-            let balance = await gatetoken.balanceOf(accounts[0].address);
-
-            await staking.feeDistribution(BigInt(9e18));
+    describe("Started: ", async function () {
+        beforeEach("Before Each: ", async function () {
             await network.provider.send("evm_increaseTime", [3600]);
             await network.provider.send("evm_mine", []);
-            await staking.claim();
-
-            expect(balance).to.equal(
-                await gatetoken.balanceOf(accounts[0].address)
-            );
         });
 
-        it("Should claim half the fees if 2 equal stakers", async () => {
-            await gatetoken.approve(
-                staking.address,
-                BigInt(100000000000000e18)
-            );
-            await staking.stake(BigInt(1000000e18));
+        describe("Staking: ", async function () {
+            it("Should revert on non approved stake", async function () {
+                try {
+                    await staking.stake(BigInt(1000e18));
+                } catch (error) {
+                    expect(error.message).to.equal(
+                        "VM Exception while processing transaction: reverted with reason string 'ERC20: transfer amount exceeds allowance'"
+                    );
+                }
+            });
 
-            await gatetoken.transfer(accounts[1].address, BigInt(1000000e18));
+            it("Should emit stake event with correct args", async function () {
+                await gatetoken.approve(staking.address, BigInt(1000e18));
 
-            await gatetoken
-                .connect(accounts[1])
-                .approve(staking.address, BigInt(100000000000000e18));
-            await staking.connect(accounts[1]).stake(BigInt(1000000e18));
+                expect(await staking.stake(BigInt(1000e18)))
+                    .to.emit(staking, "Staked")
+                    .withArgs(accounts[0].address, BigInt(1000e18));
+            });
             //
-            await staking.claim();
+            it("Should revert on too little stake", async function () {
+                await gatetoken.approve(staking.address, 1);
 
-            const tx1 = await staking.feeDistribution(BigInt(9e18));
-            const rc1 = await tx1.wait();
-            const event1 = rc1.events.find(
-                (event) => event.event === "FeeDistributed"
-            );
-            const [block, amount1] = event1.args;
-
-            const tx2 = await staking.claim();
-            const rc2 = await tx2.wait();
-            const event2 = rc2.events.find(
-                (event) => event.event === "Claimed"
-            );
-            const [user, amount2] = event2.args;
+                try {
+                    await staking.stake(1);
+                } catch (error) {
+                    expect(error.message).to.equal(
+                        "VM Exception while processing transaction: reverted with reason string 'Stake too small'"
+                    );
+                }
+            });
             //
-            expect(BigInt(amount1) / BigInt(2)).to.equal(BigInt(amount2));
+            it("Should not revert on minimum stake", async function () {
+                await gatetoken.approve(staking.address, BigInt(1000e18));
+
+                try {
+                    await staking.stake(BigInt(1000e18));
+                } catch (error) {
+                    expect(error.message).to.equal("");
+                }
+            });
         });
-    });
 
-    describe("PendingFee: ", async function () {
-        it("Should show correct fee", async () => {
-            await gatetoken.approve(
-                staking.address,
-                BigInt(100000000000000e18)
-            );
-            await staking.stake(BigInt(1000000e18));
-
-            const tx = await staking.feeDistribution(BigInt(9e18));
-            const rc = await tx.wait();
-            const event = rc.events.find(
-                (event) => event.event === "FeeDistributed"
-            );
-            const [block, amount] = event.args;
-
-            expect(await staking.pendingFee(accounts[0].address)).to.equal(
-                amount
-            );
-        });
-    });
-
-    describe("addReward: ", async function () {
-        it("Should add reward", async () => {
-            await gatetoken.approve(staking.address, BigInt(10000e18));
-
-            const tx = await staking.addReward(BigInt(10000e18));
-            const rc = await tx.wait();
-            const event = rc.events.find(
-                (event) => event.event === "RewardAdded"
-            );
-            const [amount] = event.args;
-
-            expect(amount).to.equal(
-                BigInt(await staking.rewardRate()) *
-                    (BigInt(await staking.endDate()) -
-                        BigInt(await staking.firstTimeRewardApplicable()))
-            );
-            expect(await gatetoken.balanceOf(staking.address)).to.equal(amount);
-        });
-    });
-
-    describe("setOnlyCompoundStaking: ", async function () {
-        it("Should prevent non compound staking", async () => {
-            staking.setOnlyCompoundStaking(true);
-            await gatetoken.approve(
-                staking.address,
-                BigInt(100000000000000e18)
-            );
-
-            try {
+        describe("Claim: ", async function () {
+            it("Should claim all fees if only staker", async () => {
+                await gatetoken.approve(
+                    staking.address,
+                    BigInt(100000000000000e18)
+                );
                 await staking.stake(BigInt(1000000e18));
+
+                let balance = await gatetoken.balanceOf(accounts[0].address);
+
+                await staking.feeDistribution(BigInt(9e18));
+                await network.provider.send("evm_increaseTime", [3600]);
+                await network.provider.send("evm_mine", []);
+                await staking.claim();
+
+                expect(balance).to.equal(
+                    await gatetoken.balanceOf(accounts[0].address)
+                );
+            });
+
+            it("Should claim half the fees if 2 equal stakers", async () => {
+                await gatetoken.approve(
+                    staking.address,
+                    BigInt(100000000000000e18)
+                );
+                await staking.stake(BigInt(1000000e18));
+
+                await gatetoken.transfer(
+                    accounts[1].address,
+                    BigInt(1000000e18)
+                );
+
+                await gatetoken
+                    .connect(accounts[1])
+                    .approve(staking.address, BigInt(100000000000000e18));
+                await staking.connect(accounts[1]).stake(BigInt(1000000e18));
+                //
+                await staking.claim();
+
+                const tx1 = await staking.feeDistribution(BigInt(9e18));
+                const rc1 = await tx1.wait();
+                const event1 = rc1.events.find(
+                    (event) => event.event === "FeeDistributed"
+                );
+                const [block, amount1] = event1.args;
+
+                const tx2 = await staking.claim();
+                const rc2 = await tx2.wait();
+                const event2 = rc2.events.find(
+                    (event) => event.event === "Claimed"
+                );
+                const [user, amount2] = event2.args;
+                //
+                expect(BigInt(amount1) / BigInt(2)).to.equal(BigInt(amount2));
+            });
+        });
+
+        describe("PendingFee: ", async function () {
+            it("Should show correct fee", async () => {
+                await gatetoken.approve(
+                    staking.address,
+                    BigInt(100000000000000e18)
+                );
+                await staking.stake(BigInt(1000000e18));
+
+                const tx = await staking.feeDistribution(BigInt(9e18));
+                const rc = await tx.wait();
+                const event = rc.events.find(
+                    (event) => event.event === "FeeDistributed"
+                );
+                const [block, amount] = event.args;
+
+                expect(await staking.pendingFee(accounts[0].address)).to.equal(
+                    amount
+                );
+            });
+        });
+
+        describe("addReward: ", async function () {
+            it("Should add reward", async () => {
+                await gatetoken.approve(staking.address, BigInt(10000e18));
+
+                const tx = await staking.addReward(BigInt(10000e18));
+                const rc = await tx.wait();
+                const event = rc.events.find(
+                    (event) => event.event === "RewardAdded"
+                );
+                const [amount] = event.args;
+
+                expect(amount).to.equal(
+                    BigInt(await staking.rewardRate()) *
+                        (BigInt(await staking.endDate()) -
+                            BigInt(await staking.firstTimeRewardApplicable()))
+                );
+                expect(await gatetoken.balanceOf(staking.address)).to.equal(
+                    amount
+                );
+            });
+        });
+
+        describe("setOnlyCompoundStaking: ", async function () {
+            it("Should prevent non compound staking", async () => {
+                staking.setOnlyCompoundStaking(true);
+                await gatetoken.approve(
+                    staking.address,
+                    BigInt(100000000000000e18)
+                );
+
+                try {
+                    await staking.stake(BigInt(1000000e18));
+                } catch (error) {
+                    expect(error.message).to.equal(
+                        "VM Exception while processing transaction: reverted with reason string 'Only auto-compound staking allowed'"
+                    );
+                }
+            });
+
+            it("Should allow non compound staking", async () => {
+                staking.setOnlyCompoundStaking(false);
+                await gatetoken.approve(
+                    staking.address,
+                    BigInt(100000000000000e18)
+                );
+
+                try {
+                    await staking.stake(BigInt(1000000e18));
+                } catch (error) {
+                    expect(error.message).to.equal("");
+                }
+            });
+        });
+
+        describe("unstakeAll: ", async function () {
+            it("Should unstakeAll", async () => {
+                await gatetoken.approve(
+                    staking.address,
+                    BigInt(100000000000000e18)
+                );
+                await staking.stake(BigInt(1000000e18));
+                await staking.stake(BigInt(1000000e18));
+                await staking.stake(BigInt(1000000e18));
+                expect(
+                    await staking.totalUserStakes(accounts[0].address)
+                ).to.equal(3);
+
+                await network.provider.send("evm_increaseTime", [200000000]);
+                await network.provider.send("evm_mine", []);
+
+                let stakes = await staking.getUserStakes(accounts[0].address);
+                await staking.unstakeAll();
+                let newStakes = await staking.getUserStakes(
+                    accounts[0].address
+                );
+                expect(newStakes).not.to.equal(stakes);
+
+                for (let i = 0; i < 3; i++) {
+                    expect(newStakes[i].amount).to.equal(0);
+                }
+            });
+        });
+    });
+
+    describe("not started: ", async function () {
+        it("Should not be able to stake", async () => {
+            try {
+                await staking.stake(100000);
             } catch (error) {
                 expect(error.message).to.equal(
-                    "VM Exception while processing transaction: reverted with reason string 'Only auto-compound staking allowed'"
+                    "VM Exception while processing transaction: reverted with reason string 'Stake period hasn't started'"
                 );
             }
         });
 
-        it("Should allow non compound staking", async () => {
-            staking.setOnlyCompoundStaking(false);
-            await gatetoken.approve(
-                staking.address,
-                BigInt(100000000000000e18)
-            );
-
+        it("Should not be able to unstake", async () => {
             try {
-                await staking.stake(BigInt(1000000e18));
+                await staking.unstake(100000, 0);
             } catch (error) {
-                expect(error.message).to.equal("");
+                expect(error.message).to.equal(
+                    "VM Exception while processing transaction: reverted with reason string 'Stake period hasn't started'"
+                );
             }
         });
-    });
 
-    describe("unstakeAll: ", async function () {
-        it("Should unstakeAll", async () => {
-            await gatetoken.approve(
-                staking.address,
-                BigInt(100000000000000e18)
-            );
-            await staking.stake(BigInt(1000000e18));
-            await staking.stake(BigInt(1000000e18));
-            await staking.stake(BigInt(1000000e18));
-            expect(await staking.totalUserStakes(accounts[0].address)).to.equal(
-                3
-            );
-
-            await network.provider.send("evm_increaseTime", [200000000]);
-            await network.provider.send("evm_mine", []);
-
-            let stakes = await staking.getUserStakes(accounts[0].address);
-            await staking.unstakeAll();
-            let newStakes = await staking.getUserStakes(accounts[0].address);
-            expect(newStakes).not.to.equal(stakes);
-
-            for (let i = 0; i < 3; i++) {
-                expect(newStakes[i].amount).to.equal(0);
+        it("Should not be able to claim", async () => {
+            try {
+                await staking.claim();
+            } catch (error) {
+                expect(error.message).to.equal(
+                    "VM Exception while processing transaction: reverted with reason string 'Stake period hasn't started'"
+                );
             }
         });
     });

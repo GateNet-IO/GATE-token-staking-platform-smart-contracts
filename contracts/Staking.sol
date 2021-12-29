@@ -108,7 +108,7 @@ contract Staking is Ownable {
         emit Unstaked(msg.sender, amount, index);
     }
 
-    function unstakeAll() external started {
+    function unstakeAll() external {
         for (uint256 i = 0; i < stakes[msg.sender].length; i++) {
             if (
                 stakes[msg.sender][i].stakeTime + LOCK_PERIOD <= block.timestamp
