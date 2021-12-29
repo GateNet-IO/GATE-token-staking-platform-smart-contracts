@@ -4,6 +4,7 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Compound.sol";
+import "hardhat/console.sol";
 
 contract Staking is Ownable {
     /* ========== STATE VARIABLES ========== */
@@ -79,7 +80,6 @@ contract Staking is Ownable {
 
     function claim() external started distributeReward(msg.sender) {
         uint256 reward = rewards[msg.sender];
-
         calculateFees(msg.sender);
         compound.calculateFees(msg.sender);
 
@@ -112,7 +112,7 @@ contract Staking is Ownable {
         fees[msg.sender] +=
             ((amount) * (feePerToken - stakes[msg.sender][index].fee)) /
             1 ether;
-        stakedToken.transferFrom(msg.sender, address(this), amount);
+        stakedToken.transfer(msg.sender, amount);
         emit Unstaked(msg.sender, amount, index);
     }
 
@@ -177,15 +177,16 @@ contract Staking is Ownable {
     function feeDistribution(uint256 amount) external onlyOwner {
         require(amount > 0, "Cannot distribute 0 fee");
         feePerToken += (amount * 1 ether) / (totalStaked);
+
         stakedToken.transferFrom(
             msg.sender,
             address(this),
-            (feePerToken * (totalStaked)) / 1 ether
+            amount
         );
 
         emit FeeDistributed(
-            block.number,
-            (feePerToken * (totalStaked)) / 1 ether
+            block.timestamp,
+            amount
         );
     }
 

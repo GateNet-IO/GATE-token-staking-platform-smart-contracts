@@ -9,3 +9,6 @@ ALCHEMY_URL: infura / alchemy url
 
 ## compiling smart contracts
 ```npx hardhat compile```
+
+## code coverage
+```npx hardhat coverage```
