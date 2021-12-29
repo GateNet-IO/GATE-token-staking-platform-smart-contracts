@@ -21,7 +21,7 @@ describe("Staking contract: ", function () {
         staking = await Staking.deploy(
             gatetoken.address,
             latestBlock.timestamp + 60,
-            latestBlock.timestamp + 24 * 60 * 60 * 30
+            latestBlock.timestamp + 1814460
         );
 
         await staking.deployed();
@@ -122,6 +122,10 @@ describe("Staking contract: ", function () {
         });
 
         describe("Claim: ", async function () {
+            it("Shouldn't change anything if reward is 0", async () => {
+                await staking.claim();
+            });
+
             it("Should claim all fees if only staker", async () => {
                 await gatetoken.approve(
                     staking.address,
@@ -290,6 +294,37 @@ describe("Staking contract: ", function () {
 
                 for (let i = 0; i < 3; i++) {
                     expect(newStakes[i].amount).to.equal(0);
+                }
+            });
+
+            it("Should skip recent stakes", async () => {
+                await gatetoken.approve(
+                    staking.address,
+                    BigInt(100000000000000e18)
+                );
+                await staking.stake(BigInt(1000000e18));
+
+                await network.provider.send("evm_increaseTime", [350000]);
+                await network.provider.send("evm_mine", []);
+
+                await staking.stake(BigInt(1000000e18));
+
+                await network.provider.send("evm_increaseTime", [350000]);
+                await network.provider.send("evm_mine", []);
+
+                expect(
+                    await staking.totalUserStakes(accounts[0].address)
+                ).to.equal(2);
+
+                let stakes = await staking.getUserStakes(accounts[0].address);
+                await staking.unstakeAll();
+                let newStakes = await staking.getUserStakes(
+                    accounts[0].address
+                );
+                expect(newStakes).not.to.equal(stakes);
+
+                for (let i = 0; i < 2; i++) {
+                    expect(newStakes[i].amount).to.equal(BigInt(1000000e18));
                 }
             });
         });

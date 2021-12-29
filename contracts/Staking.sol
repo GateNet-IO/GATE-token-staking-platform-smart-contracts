@@ -76,9 +76,9 @@ contract Staking is Ownable {
         compound.calculateFees(msg.sender);
 
         reward += fees[msg.sender];
-        fees[msg.sender] = 0;
 
         if (reward > 0) {
+            fees[msg.sender] = 0;
             rewards[msg.sender] = 0;
             stakedToken.transfer(msg.sender, reward);
             emit Claimed(msg.sender, reward);
@@ -123,7 +123,11 @@ contract Staking is Ownable {
         fees[user] += amount;
     }
 
-    function addReward(uint256 amount) external onlyOwner {
+    function addReward(uint256 amount)
+        external
+        onlyOwner
+        distributeReward(address(0))
+    {
         require(amount > 0, "Cannot add 0 reward");
         rewardRate += (amount) / (endDate - firstTimeRewardApplicable());
 
