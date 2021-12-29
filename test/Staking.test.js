@@ -132,4 +132,18 @@ describe("Staking contract: ", function() {
             expect(await staking.pendingFee(accounts[0].address)).to.equal(amount)
         });
     })
+
+    describe("addReward: ", async function () {
+        it("Should add reward", async () => {
+            await gatetoken.approve(staking.address, BigInt(10000e18));
+
+            const tx = await staking.addReward(BigInt(10000e18));
+            const rc = await tx.wait();
+            const event = rc.events.find(event => event.event === 'RewardAdded');
+            const [amount] = event.args;
+            
+            expect(amount).to.equal((BigInt(await staking.rewardRate())) * (BigInt(await (staking.endDate())) - BigInt(await (staking.firstTimeRewardApplicable()))));
+            expect(await gatetoken.balanceOf(staking.address)).to.equal(amount);
+        });
+    });
 });

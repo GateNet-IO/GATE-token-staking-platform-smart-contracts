@@ -40,6 +40,7 @@ contract Staking is Ownable {
     event Claimed(address indexed user, uint256 amount);
     event FeeDistributed(uint256 block, uint256 amount);
     event Unstaked(address indexed user, uint256 amount, uint256 index);
+    event RewardAdded(uint256 amount);
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -126,9 +127,15 @@ contract Staking is Ownable {
     function addReward(uint256 amount) external onlyOwner {
         require(amount > 0, "Cannot add 0 reward");
         rewardRate += (amount) / (endDate - firstTimeRewardApplicable());
+
         stakedToken.transferFrom(
             msg.sender,
             address(this),
+            ((amount) / (endDate - firstTimeRewardApplicable())) *
+                (endDate - firstTimeRewardApplicable())
+        );
+
+        emit RewardAdded(
             ((amount) / (endDate - firstTimeRewardApplicable())) *
                 (endDate - firstTimeRewardApplicable())
         );
@@ -172,12 +179,12 @@ contract Staking is Ownable {
         stakedToken.transferFrom(
             msg.sender,
             address(this),
-            (amount * 1 ether) / (totalStaked) * totalStaked / 1 ether
+            (((amount * 1 ether) / (totalStaked)) * totalStaked) / 1 ether
         );
 
         emit FeeDistributed(
             block.timestamp,
-            (amount * 1 ether) / (totalStaked) * totalStaked / 1 ether
+            (((amount * 1 ether) / (totalStaked)) * totalStaked) / 1 ether
         );
     }
 
