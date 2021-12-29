@@ -93,5 +93,43 @@ describe("Staking contract: ", function() {
 
             expect(balance).to.equal(await gatetoken.balanceOf(accounts[0].address))
         });
+
+        it("Should claim half the fees if 2 equal stakers", async () => {
+            await gatetoken.approve(staking.address, BigInt(100000000000000e18));
+            await staking.stake(BigInt(1000000e18));
+
+            await gatetoken.transfer(accounts[1].address, BigInt(1000000e18));
+
+            await gatetoken.connect(accounts[1]).approve(staking.address, BigInt(100000000000000e18));
+            await staking.connect(accounts[1]).stake(BigInt(1000000e18));
+//
+            await staking.claim()
+
+            const tx1 = await staking.feeDistribution(BigInt(9e18));
+            const rc1 = await tx1.wait();
+            const event1 = rc1.events.find(event => event.event === 'FeeDistributed');
+            const [block, amount1] = event1.args;
+
+            const tx2 = await staking.claim()
+            const rc2 = await tx2.wait();
+            const event2 = rc2.events.find(event => event.event === 'Claimed');
+            const [user, amount2] = event2.args;
+//             
+            expect(BigInt(amount1) / BigInt(2)).to.equal(BigInt(amount2));
+        });
+    })
+
+    describe("PendingFee: ", async function () {
+        it("Should show correct fee", async () => {
+            await gatetoken.approve(staking.address, BigInt(100000000000000e18));
+            await staking.stake(BigInt(1000000e18));
+
+            const tx = await staking.feeDistribution(BigInt(9e18));
+            const rc = await tx.wait();
+            const event = rc.events.find(event => event.event === 'FeeDistributed');
+            const [block, amount] = event.args;
+
+            expect(await staking.pendingFee(accounts[0].address)).to.equal(amount)
+        });
     })
 });

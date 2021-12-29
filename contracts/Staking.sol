@@ -68,20 +68,10 @@ contract Staking is Ownable {
         emit Staked(msg.sender, amount);
     }
 
-    function calculateFees(address user) internal {
-        for (uint256 i = 0; i < stakes[user].length; i++) {
-            fees[user] +=
-                ((stakes[user][i].amount) *
-                    (feePerToken - stakes[user][i].fee)) /
-                1 ether;
-            stakes[user][i].fee = feePerToken;
-        }
-    }
-
     function claim() external started distributeReward(msg.sender) {
         uint256 reward = rewards[msg.sender];
 
-        calculateFees(msg.sender);
+        fees[msg.sender] = pendingFee(msg.sender);
         compound.calculateFees(msg.sender);
 
         reward += fees[msg.sender];
@@ -226,7 +216,7 @@ contract Staking is Ownable {
             (rewards[user]);
     }
 
-    function pendingFee(address user) external view returns (uint256) {
+    function pendingFee(address user) public view returns (uint256) {
         uint256 amount = fees[user];
 
         for (uint256 i = 0; i < stakes[user].length; i++) {
