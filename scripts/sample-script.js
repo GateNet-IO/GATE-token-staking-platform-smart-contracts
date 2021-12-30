@@ -6,20 +6,6 @@
 const hre = require("hardhat");
 
 async function main() {
-    // Hardhat always runs the compile task when running scripts with its command
-    // line interface.
-    //
-    // If this script is run directly using `node` you may want to call compile
-    // manually to make sure everything is compiled
-    // await hre.run('compile');
-
-    // We get the contract to deploy
-    const GateToken = await hre.ethers.getContractFactory("GateToken");
-    const gatetoken = await GateToken.deploy();
-
-    await gatetoken.deployed();
-    console.log("token: " + gatetoken.address);
-
     let end = new Date();
     end.setDate(end.getDate() + 31);
     const End = Math.floor(end.getTime() / 1000);
@@ -27,16 +13,23 @@ async function main() {
     start.setDate(start.getDate());
     const Start = Math.floor(start.getTime() / 1000);
 
+    // We get the contract to deploy
+    const GateToken = await hre.ethers.getContractFactory("GateToken");
+    const gatetoken = await GateToken.deploy();
+
+    await gatetoken.deployTransaction.wait(5);
+    console.log("token: " + gatetoken.address);
+
     const Staking = await hre.ethers.getContractFactory("Staking");
     const staking = await Staking.deploy(gatetoken.address, Start, End);
 
-    await staking.deployed();
+    await staking.deployTransaction.wait(5);
     console.log("staking: " + staking.address);
 
     const Compound = await hre.ethers.getContractFactory("Compound");
     const compound = await Compound.deploy(gatetoken.address, staking.address);
 
-    await compound.deployed();
+    await compound.deployTransaction.wait(5);
     console.log("compound: " + compound.address);
 
     await hre.run("verify:verify", {

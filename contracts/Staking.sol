@@ -16,7 +16,7 @@ contract Staking is Ownable {
     }
 
     uint256 public constant MINIMUM_STAKE = 1000 ether;
-    uint256 public constant LOCK_PERIOD = 31 days;
+    uint256 public constant LOCK_PERIOD = 10 minutes;
 
     uint256 public totalStaked; // total amount of tokens staked
     uint256 public rewardRate; // token rewards per second
