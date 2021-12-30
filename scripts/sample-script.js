@@ -6,109 +6,89 @@
 const hre = require("hardhat");
 
 async function main() {
-  // Hardhat always runs the compile task when running scripts with its command
-  // line interface.
-  //
-  // If this script is run directly using `node` you may want to call compile
-  // manually to make sure everything is compiled
-  // await hre.run('compile');
+    // Hardhat always runs the compile task when running scripts with its command
+    // line interface.
+    //
+    // If this script is run directly using `node` you may want to call compile
+    // manually to make sure everything is compiled
+    // await hre.run('compile');
 
-  // We get the contract to deploy
-  const GateToken = await hre.ethers.getContractFactory("GateToken");
-  const gatetoken = await GateToken.deploy();
+    // We get the contract to deploy
+    const GateToken = await hre.ethers.getContractFactory("GateToken");
+    const gatetoken = await GateToken.deploy();
 
-  await gatetoken.deployed();
-  console.log("token: " + gatetoken.address);
+    await gatetoken.deployed();
+    console.log("token: " + gatetoken.address);
 
-  let end = new Date();
-  end.setDate(end.getDate() + 31); 
-  const End = Math.floor(end.getTime() / 1000);
-  let start = new Date();
-  start.setDate(start.getDate());
-  const Start = Math.floor(start.getTime() / 1000);
+    let end = new Date();
+    end.setDate(end.getDate() + 31);
+    const End = Math.floor(end.getTime() / 1000);
+    let start = new Date();
+    start.setDate(start.getDate());
+    const Start = Math.floor(start.getTime() / 1000);
 
-  const Staking = await hre.ethers.getContractFactory("Staking");
-  const staking = await Staking.deploy(gatetoken.address, Start, End);
+    const Staking = await hre.ethers.getContractFactory("Staking");
+    const staking = await Staking.deploy(gatetoken.address, Start, End);
 
-  await staking.deployed();
-  console.log("staking: " + staking.address);
+    await staking.deployed();
+    console.log("staking: " + staking.address);
 
-  const Compound = await hre.ethers.getContractFactory("Compound");
-  const compound = await Compound.deploy(gatetoken.address, staking.address);
+    const Compound = await hre.ethers.getContractFactory("Compound");
+    const compound = await Compound.deploy(gatetoken.address, staking.address);
 
-  await compound.deployed();
-  console.log("compound: " + compound.address);
+    await compound.deployed();
+    console.log("compound: " + compound.address);
 
-  staking.setCompoundAddress(compound.address)
+    staking.setCompoundAddress(compound.address);
 
-  
-  try {
+    try {
+        await hre.run("verify:verify", {
+            address: compound.address,
+            constructorArguments: [gatetoken.address, staking.address],
+            contract: "contracts/Compound.sol:Compound",
+        });
+    } catch (e) {
+        await hre.run("verify:verify", {
+            address: compound.address,
+            constructorArguments: [gatetoken.address, staking.address],
+            contract: "contracts/Compound.sol:Compound",
+        });
+    }
+
+    try {
+        await hre.run("verify:verify", {
+            address: staking.address,
+            constructorArguments: [gatetoken.address, Start, End],
+            contract: "contracts/Staking.sol:Staking",
+        });
+    } catch (e) {
+        await hre.run("verify:verify", {
+            address: staking.address,
+            constructorArguments: [gatetoken.address, Start, End],
+            contract: "contracts/Staking.sol:Staking",
+        });
+    }
+}
+
+try {
     await hre.run("verify:verify", {
-      address: gatetoken.address,
-      constructorArguments: [
-      ],
-      contract: "contracts/GateToken.sol:GateToken"
+        address: gatetoken.address,
+        constructorArguments: [],
+        contract: "contracts/GateToken.sol:GateToken",
     });
-  }
-  catch(e) {
+} catch (e) {
     await hre.run("verify:verify", {
-      address: gatetoken.address,
-      constructorArguments: [
-      ],
-      contract: "contracts/GateToken.sol:GateToken"
+        address: gatetoken.address,
+        constructorArguments: [],
+        contract: "contracts/GateToken.sol:GateToken",
     });
-  }
-
-  try {
-    await hre.run("verify:verify", {
-      address: compound.address,
-      constructorArguments: [
-        gatetoken.address,
-        staking.address
-      ],
-      contract: "contracts/Compound.sol:Compound"
-    });
-  }
-  catch (e) {
-    await hre.run("verify:verify", {
-      address: compound.address,
-      constructorArguments: [
-        gatetoken.address,
-        staking.address
-      ],
-      contract: "contracts/Compound.sol:Compound"
-    });
-  }
-
-  try {
-    await hre.run("verify:verify", {
-      address: staking.address,
-      constructorArguments: [
-        gatetoken.address,
-        Start,
-        End
-      ],
-      contract: "contracts/Staking.sol:Staking"
-    });
-  }
-  catch (e) {
-    await hre.run("verify:verify", {
-      address: staking.address,
-      constructorArguments: [
-        gatetoken.address,
-        Start,
-        End
-      ],
-      contract: "contracts/Staking.sol:Staking"
-    });
-  }
 }
 
 // We recommend this pattern to be able to use async/await everywhere
 // and properly handle errors.
 main()
-  .then(() => process.exit(0))
-  .catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });
