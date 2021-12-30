@@ -39,49 +39,19 @@ async function main() {
     await compound.deployed();
     console.log("compound: " + compound.address);
 
-    staking.setCompoundAddress(compound.address);
-
-    try {
-        await hre.run("verify:verify", {
-            address: compound.address,
-            constructorArguments: [gatetoken.address, staking.address],
-            contract: "contracts/Compound.sol:Compound",
-        });
-    } catch (e) {
-        await hre.run("verify:verify", {
-            address: compound.address,
-            constructorArguments: [gatetoken.address, staking.address],
-            contract: "contracts/Compound.sol:Compound",
-        });
-    }
-
-    try {
-        await hre.run("verify:verify", {
-            address: staking.address,
-            constructorArguments: [gatetoken.address, Start, End],
-            contract: "contracts/Staking.sol:Staking",
-        });
-    } catch (e) {
-        await hre.run("verify:verify", {
-            address: staking.address,
-            constructorArguments: [gatetoken.address, Start, End],
-            contract: "contracts/Staking.sol:Staking",
-        });
-    }
-}
-
-try {
     await hre.run("verify:verify", {
-        address: gatetoken.address,
-        constructorArguments: [],
-        contract: "contracts/GateToken.sol:GateToken",
+        address: compound.address,
+        constructorArguments: [gatetoken.address, staking.address],
+        contract: "contracts/Compound.sol:Compound",
     });
-} catch (e) {
+
     await hre.run("verify:verify", {
-        address: gatetoken.address,
-        constructorArguments: [],
-        contract: "contracts/GateToken.sol:GateToken",
+        address: staking.address,
+        constructorArguments: [gatetoken.address, Start, End],
+        contract: "contracts/Staking.sol:Staking",
     });
+
+    await staking.setCompoundAddress(compound.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
