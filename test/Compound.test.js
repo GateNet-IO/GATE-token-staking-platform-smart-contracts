@@ -128,4 +128,23 @@ describe("Compound contract: ", function () {
             }
         });
     });
+
+    describe("calculateFees: ", async function () {
+        it("Should claim all fees if only staker", async function () {
+            await gatetoken.approve(compound.address, BigInt(10000e18));
+            await gatetoken.approve(staking.address, BigInt(10000e18));
+            await compound.deposit(BigInt(1000e18));
+
+            let balance = await gatetoken.balanceOf(accounts[0].address);
+
+            await staking.feeDistribution(BigInt(9e18));
+            await network.provider.send("evm_increaseTime", [3600]);
+            await network.provider.send("evm_mine", []);
+            await staking.claim();
+
+            expect(balance).to.equal(
+                await gatetoken.balanceOf(accounts[0].address)
+            );
+        });
+    });
 });

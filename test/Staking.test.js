@@ -302,6 +302,7 @@ describe("Staking contract: ", function () {
                     staking.address,
                     BigInt(100000000000000e18)
                 );
+
                 await staking.stake(BigInt(1000000e18));
 
                 await network.provider.send("evm_increaseTime", [350000]);
@@ -323,9 +324,8 @@ describe("Staking contract: ", function () {
                 );
                 expect(newStakes).not.to.equal(stakes);
 
-                for (let i = 0; i < 2; i++) {
-                    expect(newStakes[i].amount).to.equal(BigInt(1000000e18));
-                }
+                expect(newStakes[0].amount).to.equal(BigInt(0));
+                expect(newStakes[1].amount).to.equal(BigInt(1000000e18));
             });
         });
     });

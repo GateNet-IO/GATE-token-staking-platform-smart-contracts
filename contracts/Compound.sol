@@ -123,13 +123,7 @@ contract Compound is Ownable {
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */
-
-    function approve(uint256 amount) external onlyOwner {
-        require(amount > 0, "Cannot approve 0");
-        stakedToken.approve(address(staking), amount);
-    }
-
-    function harvest() external started updateShareWorth {
+    function harvest() external updateShareWorth {
         emit Harvest(msg.sender);
     }
 
@@ -142,10 +136,6 @@ contract Compound is Ownable {
         }
         return amount;
     }
-
-    //function available() public view returns (uint256) {}
-
-    //function balanceOf() public returns (uint256) {}
 
     /* ========== MODIFIERS ========== */
 

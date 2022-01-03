@@ -4,7 +4,6 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Compound.sol";
-import "hardhat/console.sol";
 
 contract Staking is Ownable {
     /* ========== STATE VARIABLES ========== */
@@ -16,7 +15,7 @@ contract Staking is Ownable {
     }
 
     uint256 public constant MINIMUM_STAKE = 1000 ether;
-    uint256 public constant LOCK_PERIOD = 10 minutes;
+    uint256 public constant LOCK_PERIOD = 7 days;
 
     uint256 public totalStaked; // total amount of tokens staked
     uint256 public rewardRate; // token rewards per second
@@ -177,6 +176,8 @@ contract Staking is Ownable {
 
     function feeDistribution(uint256 amount) external onlyOwner {
         require(amount > 0, "Cannot distribute 0 fee");
+        require(totalStaked > 0, "Noone to distribute fee to");
+
         feePerToken += (amount * 1 ether) / (totalStaked);
 
         stakedToken.transferFrom(
