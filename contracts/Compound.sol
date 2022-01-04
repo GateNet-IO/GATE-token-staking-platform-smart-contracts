@@ -59,7 +59,9 @@ contract Compound is Ownable {
                 staking.feePerToken()
             )
         );
-        staking.autoCompStake(amount);
+
+        staking.autoCompStake((amount / shareWorth) * shareWorth);
+
         stakedToken.transferFrom(
             msg.sender,
             address(staking),
@@ -74,13 +76,34 @@ contract Compound is Ownable {
     }
 
     function withdrawAll() external {
+        uint256 totalShares;
+
         for (uint256 i = 0; i < userInfo[msg.sender].length; i++) {
             if (
                 userInfo[msg.sender][i].stakeTime + staking.LOCK_PERIOD() <=
-                block.timestamp
+                block.timestamp &&
+                userInfo[msg.sender][i].shares > 0
             ) {
-                withdraw(userInfo[msg.sender][i].shares, i);
+                uint256 _shares = userInfo[msg.sender][i].shares;
+                totalShares += _shares;
+
+                userInfo[msg.sender][i].shares -= _shares;
+
+                staking.addFee(
+                    msg.sender,
+                    (_shares *
+                        userInfo[msg.sender][i].sharePrice *
+                        (staking.feePerToken() - userInfo[msg.sender][i].fee)) /
+                        1 ether
+                );
             }
+        }
+
+        if (totalShares > 0) {
+            shares -= totalShares;
+            staking.autoCompUnstake(totalShares * shareWorth);
+            staking.transferReward(totalShares * shareWorth, msg.sender);
+            emit Withdraw(msg.sender, currentAmount(msg.sender), totalShares);
         }
     }
 
@@ -107,7 +130,7 @@ contract Compound is Ownable {
                 1 ether
         );
 
-        staking.autoCompUnstake(_shares * shareWorth, index);
+        staking.autoCompUnstake(_shares * shareWorth);
         staking.transferReward(_shares * shareWorth, msg.sender);
         emit Withdraw(msg.sender, currentAmount(msg.sender), _shares);
     }

@@ -149,12 +149,10 @@ contract Staking is Ownable {
         emit Staked(tx.origin, amount);
     }
 
-    function autoCompUnstake(uint256 amount, uint256 index)
-        external
-        onlyCompound
-    {
+    function autoCompUnstake(uint256 amount) external onlyCompound {
         totalStaked -= amount;
-        emit Unstaked(tx.origin, amount, index);
+        console.log(amount);
+        emit Unstaked(tx.origin, amount, 0);
     }
 
     function transferReward(uint256 amount, address recipient)
