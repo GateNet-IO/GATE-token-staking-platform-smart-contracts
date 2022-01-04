@@ -150,7 +150,7 @@ contract Compound is Ownable {
                 uint256 placeHolder = shareWorth;
                 shareWorth +=
                     (shareWorth *
-                        ((86400 * staking.rewardRate() * 1e18) /
+                        ((86400 * staking.rewardRate() * 1 ether) /
                             staking.totalStaked())) /
                     1 ether;
 

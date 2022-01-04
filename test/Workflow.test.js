@@ -34,28 +34,34 @@ describe("Workflow tests: ", function () {
     });
 
     describe("Test: ", async function () {
-        it("Daryl McFarlane txns", async function () {
+        it("Daz txns", async function () {
             await gatetoken.approve(staking.address, BigInt(1000000e18));
-            await gatetoken.transfer(accounts[1].address, BigInt(20000e18));
+            await gatetoken.approve(compound.address, BigInt(1000000e18));
+            await gatetoken.transfer(accounts[1].address, BigInt(200000e18));
             console.log(await gatetoken.balanceOf(accounts[0].address));
             await staking.addReward(BigInt(1000000e18));
 
             await gatetoken
                 .connect(accounts[1])
-                .approve(staking.address, BigInt(1000000e18));
+                .approve(staking.address, BigInt(10000000e18));
             await gatetoken
                 .connect(accounts[1])
-                .approve(compound.address, BigInt(1000000e18));
+                .approve(compound.address, BigInt(10000000e18));
 
             console.log(await gatetoken.balanceOf(accounts[1].address));
             await compound.connect(accounts[1]).deposit(BigInt(9999e18));
             await network.provider.send("evm_increaseTime", [704800]);
             await network.provider.send("evm_mine", []);
             await compound.connect(accounts[1]).deposit(BigInt(9999e18));
-            await network.provider.send("evm_increaseTime", [7048000]);
+            await compound.connect(accounts[1]).deposit(BigInt(9999e18));
+            await compound.connect(accounts[1]).deposit(BigInt(9999e18));
+            await compound.connect(accounts[0]).deposit(BigInt(9999e18));
+            await network.provider.send("evm_increaseTime", [70480000]);
             await network.provider.send("evm_mine", []);
             await compound.connect(accounts[1]).withdrawAll();
+            await compound.withdrawAll();
             console.log(await gatetoken.balanceOf(accounts[1].address));
+            console.log(await gatetoken.balanceOf(staking.address));
         });
     });
 });
