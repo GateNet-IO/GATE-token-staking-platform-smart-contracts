@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { deployments, network, ethers } = require("hardhat");
 
-describe("Compound contract: ", function () {
+describe("Workflow tests: ", function () {
     let gatetoken;
     let staking;
     let compound;
@@ -20,7 +20,7 @@ describe("Compound contract: ", function () {
         const Staking = await hre.ethers.getContractFactory("Staking");
         staking = await Staking.deploy(
             gatetoken.address,
-            latestBlock.timestamp + 60,
+            latestBlock.timestamp,
             latestBlock.timestamp + 24 * 60 * 60 * 30
         );
 
@@ -33,20 +33,29 @@ describe("Compound contract: ", function () {
         staking.setCompoundAddress(compound.address);
     });
 
-    describe("Big tests: ", async function () {
-        it("1", async function () {
+    describe("Test: ", async function () {
+        it("Daryl McFarlane txns", async function () {
             await gatetoken.approve(staking.address, BigInt(1000000e18));
-            await gatetoken.transfer(accounts[1].address, BigInt(1000000e18));
-            await gatetoken.transfer(accounts[2].address, BigInt(1000000e18));
+            await gatetoken.transfer(accounts[1].address, BigInt(20000e18));
+            console.log(await gatetoken.balanceOf(accounts[0].address));
+            await staking.addReward(BigInt(1000000e18));
 
-            const tx = await staking.addReward(BigInt(10000e18));
-            const rc = await tx.wait();
-            const event = rc.events.find(
-                (event) => event.event === "RewardAdded"
-            );
-            const [amount] = event.args;
+            await gatetoken
+                .connect(accounts[1])
+                .approve(staking.address, BigInt(1000000e18));
+            await gatetoken
+                .connect(accounts[1])
+                .approve(compound.address, BigInt(1000000e18));
 
-            expect(await gatetoken.balanceOf(staking.address)).to.equal(amount);
+            console.log(await gatetoken.balanceOf(accounts[1].address));
+            await compound.connect(accounts[1]).deposit(BigInt(9999e18));
+            await network.provider.send("evm_increaseTime", [704800]);
+            await network.provider.send("evm_mine", []);
+            await compound.connect(accounts[1]).deposit(BigInt(9999e18));
+            await network.provider.send("evm_increaseTime", [7048000]);
+            await network.provider.send("evm_mine", []);
+            await compound.connect(accounts[1]).withdrawAll();
+            console.log(await gatetoken.balanceOf(accounts[1].address));
         });
     });
 });

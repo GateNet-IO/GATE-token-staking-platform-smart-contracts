@@ -42,7 +42,7 @@ contract Compound is Ownable {
         staking = Staking(_staking);
         lastUpdateTime = staking.beginDate();
 
-        shareWorth = 1;
+        shareWorth = 1 ether;
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
@@ -149,9 +149,10 @@ contract Compound is Ownable {
             ) {
                 uint256 placeHolder = shareWorth;
                 shareWorth +=
-                    shareWorth *
-                    ((86400 * staking.rewardRate() * 1e18) /
-                        staking.totalStaked());
+                    (shareWorth *
+                        ((86400 * staking.rewardRate() * 1e18) /
+                            staking.totalStaked())) /
+                    1 ether;
 
                 staking.autoCompStake(shares * (shareWorth - placeHolder));
             }
