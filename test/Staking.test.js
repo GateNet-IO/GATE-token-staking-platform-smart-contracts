@@ -388,7 +388,7 @@ describe("Staking contract: ", function () {
         describe("autoCompUnstake: ", async function () {
             it("Should revert", async () => {
                 try {
-                    await staking.autoCompUnstake(0, 0);
+                    await staking.autoCompUnstake(0);
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'Only compound'"

@@ -107,14 +107,28 @@ contract Staking is Ownable {
         emit Unstaked(msg.sender, amount, index);
     }
 
-    function unstakeAll() external {
+    function unstakeAll() external distributeReward(msg.sender) {
+        uint256 totalAmount;
         for (uint256 i = 0; i < stakes[msg.sender].length; i++) {
             if (
-                stakes[msg.sender][i].stakeTime + LOCK_PERIOD <= block.timestamp
+                stakes[msg.sender][i].stakeTime + LOCK_PERIOD <=
+                block.timestamp &&
+                stakes[msg.sender][i].amount > 0
             ) {
-                unstake(stakes[msg.sender][i].amount, i);
+                uint256 amount = stakes[msg.sender][i].amount;
+                totalAmount += amount;
+
+                stakes[msg.sender][i].amount = 0;
+
+                fees[msg.sender] +=
+                    ((amount) * (feePerToken - stakes[msg.sender][i].fee)) /
+                    1 ether;
+
+                emit Unstaked(msg.sender, amount, i);
             }
         }
+        totalStaked -= totalAmount;
+        stakedToken.transfer(msg.sender, totalAmount);
     }
 
     /* ========== RESTRICTED FUNCTIONS ========== */
@@ -151,7 +165,6 @@ contract Staking is Ownable {
 
     function autoCompUnstake(uint256 amount) external onlyCompound {
         totalStaked -= amount;
-        console.log(amount);
         emit Unstaked(tx.origin, amount, 0);
     }
 

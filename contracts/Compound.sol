@@ -75,7 +75,7 @@ contract Compound is Ownable {
         );
     }
 
-    function withdrawAll() external {
+    function withdrawAll() external updateShareWorth {
         uint256 totalShares;
 
         for (uint256 i = 0; i < userInfo[msg.sender].length; i++) {
