@@ -4,6 +4,7 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./Staking.sol";
+import "hardhat/console.sol";
 
 // compound once a day
 contract Compound is Ownable {
@@ -49,7 +50,7 @@ contract Compound is Ownable {
 
     function deposit(uint256 amount) external started updateShareWorth {
         require(amount >= staking.MINIMUM_STAKE(), "Stake too small");
-        shares += amount / shareWorth;
+        shares += (amount) / shareWorth;
         userInfo[msg.sender].push(
             UserInfo(
                 shareWorth,
@@ -144,22 +145,20 @@ contract Compound is Ownable {
             for (
                 uint256 i = 0;
                 i <
-                (staking.lastTimeRewardApplicable() - lastUpdateTime) / 86400;
+                (staking.lastTimeRewardApplicable() - lastUpdateTime) / 3600;
                 i++
             ) {
                 uint256 placeHolder = shareWorth;
                 shareWorth +=
                     (shareWorth *
-                        ((86400 * staking.rewardRate() * 1 ether) /
+                        ((3600 * staking.rewardRate() * 1 ether) /
                             staking.totalStaked())) /
                     1 ether;
 
                 staking.autoCompStake(shares * (shareWorth - placeHolder));
             }
 
-            lastUpdateTime =
-                (staking.lastTimeRewardApplicable() / 86400) *
-                86400;
+            lastUpdateTime = (staking.lastTimeRewardApplicable() / 3600) * 3600;
         }
         _;
     }

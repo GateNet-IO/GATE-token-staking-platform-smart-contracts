@@ -67,7 +67,8 @@ describe("Compound contract: ", function () {
         it("Should successfully withdraw all", async function () {
             await gatetoken.approve(compound.address, BigInt(1000e18));
             await compound.deposit(BigInt(1000e18));
-            await network.provider.send("evm_increaseTime", [3000000]);
+            await network.provider.send("evm_increaseTime", [7048000]);
+            await network.provider.send("evm_mine", []);
             await compound.withdrawAll();
             expect(await staking.totalStaked()).to.equal(0);
             expect(await gatetoken.balanceOf(staking.address)).to.equal(
@@ -107,7 +108,7 @@ describe("Compound contract: ", function () {
             await compound.deposit(BigInt(1000e18));
 
             try {
-                await compound.withdraw(BigInt(10000e18), 0);
+                await compound.withdraw(BigInt(10000), 0);
             } catch (error) {
                 expect(error.message).to.equal(
                     "VM Exception while processing transaction: reverted with reason string 'Stake too big'"
@@ -120,7 +121,7 @@ describe("Compound contract: ", function () {
             await compound.deposit(BigInt(1000e18));
 
             try {
-                await compound.withdraw(BigInt(1000e18), 0);
+                await compound.withdraw(BigInt(1000), 0);
             } catch (error) {
                 expect(error.message).to.equal(
                     "VM Exception while processing transaction: reverted with reason string 'Minimum lock period hasn't passed'"
