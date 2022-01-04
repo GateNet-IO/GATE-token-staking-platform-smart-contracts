@@ -145,17 +145,12 @@ contract Staking is Ownable {
         require(amount > 0, "Cannot add 0 reward");
         rewardRate += (amount) / (endDate - firstTimeRewardApplicable());
 
-        stakedToken.transferFrom(
-            msg.sender,
-            address(this),
-            ((amount) / (endDate - firstTimeRewardApplicable())) *
-                (endDate - firstTimeRewardApplicable())
-        );
+        uint256 result = ((amount) / (endDate - firstTimeRewardApplicable())) *
+            (endDate - firstTimeRewardApplicable());
 
-        emit RewardAdded(
-            ((amount) / (endDate - firstTimeRewardApplicable())) *
-                (endDate - firstTimeRewardApplicable())
-        );
+        stakedToken.transferFrom(msg.sender, address(this), result);
+
+        emit RewardAdded(result);
     }
 
     function autoCompStake(uint256 amount) external onlyCompound {
@@ -192,16 +187,12 @@ contract Staking is Ownable {
 
         feePerToken += (amount * 1 ether) / (totalStaked);
 
-        stakedToken.transferFrom(
-            msg.sender,
-            address(this),
-            (((amount * 1 ether) / (totalStaked)) * totalStaked) / 1 ether
-        );
+        uint256 result = (((amount * 1 ether) / (totalStaked)) * totalStaked) /
+            1 ether;
 
-        emit FeeDistributed(
-            block.timestamp,
-            (((amount * 1 ether) / (totalStaked)) * totalStaked) / 1 ether
-        );
+        stakedToken.transferFrom(msg.sender, address(this), result);
+
+        emit FeeDistributed(block.timestamp, result);
     }
 
     /* ========== VIEWS ========== */
