@@ -144,12 +144,8 @@ contract Staking is Ownable {
     {
         require(amount > 0, "Cannot add 0 reward");
         rewardRate += (amount) / (endDate - firstTimeRewardApplicable());
-
-        uint256 result = ((amount) / (endDate - firstTimeRewardApplicable())) *
-            (endDate - firstTimeRewardApplicable());
-
+        uint256 result = rewardRate * (endDate - firstTimeRewardApplicable());
         stakedToken.transferFrom(msg.sender, address(this), result);
-
         emit RewardAdded(result);
     }
 

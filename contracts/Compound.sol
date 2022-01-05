@@ -15,6 +15,7 @@ contract Compound is Ownable {
         uint256 shares; // number of shares for a user
         uint256 stakeTime; // time of user deposit
         uint256 fee;
+        uint256 excess;
     }
 
     uint256 public shareWorth;
@@ -56,17 +57,17 @@ contract Compound is Ownable {
                 shareWorth,
                 amount / shareWorth,
                 block.timestamp,
-                staking.feePerToken()
+                staking.feePerToken(),
+                amount - ((amount / shareWorth) * shareWorth)
             )
         );
 
-        uint256 result = (amount / shareWorth) * shareWorth;
-        staking.autoCompStake(result);
-        stakedToken.transferFrom(msg.sender, address(staking), result);
+        staking.autoCompStake(((amount / shareWorth) * shareWorth));
+        stakedToken.transferFrom(msg.sender, address(staking), amount);
 
         emit Deposit(
             msg.sender,
-            result,
+            amount,
             currentAmount(msg.sender),
             block.timestamp
         );
@@ -74,6 +75,7 @@ contract Compound is Ownable {
 
     function withdrawAll() external updateShareWorth {
         uint256 totalShares;
+        uint256 _excess;
 
         for (uint256 i = 0; i < userInfo[msg.sender].length; i++) {
             if (
@@ -83,6 +85,7 @@ contract Compound is Ownable {
             ) {
                 uint256 _shares = userInfo[msg.sender][i].shares;
                 totalShares += _shares;
+                _excess += userInfo[msg.sender][i].excess;
 
                 userInfo[msg.sender][i].shares -= _shares;
 
@@ -96,10 +99,16 @@ contract Compound is Ownable {
             }
         }
 
+        console.log(totalShares * shareWorth + _excess);
+        console.log(stakedToken.balanceOf(address(staking)));
+
         if (totalShares > 0) {
             shares -= totalShares;
             staking.autoCompUnstake(totalShares * shareWorth);
-            staking.transferReward(totalShares * shareWorth, msg.sender);
+            staking.transferReward(
+                totalShares * shareWorth + _excess,
+                msg.sender
+            );
             emit Withdraw(msg.sender, currentAmount(msg.sender), totalShares);
         }
     }
@@ -128,7 +137,11 @@ contract Compound is Ownable {
         );
 
         staking.autoCompUnstake(_shares * shareWorth);
-        staking.transferReward(_shares * shareWorth, msg.sender);
+        staking.transferReward(
+            _shares * shareWorth + userInfo[msg.sender][index].excess,
+            msg.sender
+        );
+
         emit Withdraw(msg.sender, currentAmount(msg.sender), _shares);
     }
 
@@ -165,20 +178,19 @@ contract Compound is Ownable {
             for (
                 uint256 i = 0;
                 i <
-                (staking.lastTimeRewardApplicable() - lastUpdateTime) / 3600;
+                (staking.lastTimeRewardApplicable() - lastUpdateTime) / 1 hours;
                 i++
             ) {
                 uint256 placeHolder = shareWorth;
                 shareWorth +=
-                    (shareWorth *
-                        ((3600 * staking.rewardRate() * 1 ether) /
-                            staking.totalStaked())) /
-                    1 ether;
+                    (shareWorth * 1 hours * staking.rewardRate()) /
+                    staking.totalStaked();
 
                 staking.autoCompStake(shares * (shareWorth - placeHolder));
             }
-
-            lastUpdateTime = (staking.lastTimeRewardApplicable() / 3600) * 3600;
+            lastUpdateTime =
+                (staking.lastTimeRewardApplicable() / 1 hours) *
+                1 hours;
         }
         _;
     }

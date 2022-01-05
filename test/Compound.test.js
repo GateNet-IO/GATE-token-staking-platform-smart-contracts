@@ -148,4 +148,16 @@ describe("Compound contract: ", function () {
             );
         });
     });
+
+    describe("currentAmount: ", async function () {
+        it("Should give current amount", async function () {
+            await gatetoken.approve(compound.address, BigInt(10000e18));
+            await gatetoken.approve(staking.address, BigInt(10000e18));
+            await compound.deposit(BigInt(1000e18));
+
+            expect(await compound.currentAmount(accounts[0].address)).to.equal(
+                1000
+            );
+        });
+    });
 });

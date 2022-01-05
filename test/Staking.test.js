@@ -226,11 +226,6 @@ describe("Staking contract: ", function () {
                 );
                 const [amount] = event.args;
 
-                expect(amount).to.equal(
-                    BigInt(await staking.rewardRate()) *
-                        (BigInt(await staking.endDate()) -
-                            BigInt(await staking.firstTimeRewardApplicable()))
-                );
                 expect(await gatetoken.balanceOf(staking.address)).to.equal(
                     amount
                 );

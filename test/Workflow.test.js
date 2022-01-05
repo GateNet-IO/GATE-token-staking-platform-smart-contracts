@@ -20,8 +20,8 @@ describe("Workflow tests: ", function () {
         const Staking = await hre.ethers.getContractFactory("Staking");
         staking = await Staking.deploy(
             gatetoken.address,
-            latestBlock.timestamp,
-            latestBlock.timestamp + 24 * 60 * 60 * 30
+            latestBlock.timestamp + 60,
+            latestBlock.timestamp + 60 + 2592000
         );
 
         await staking.deployed();
@@ -38,8 +38,10 @@ describe("Workflow tests: ", function () {
             await gatetoken.approve(staking.address, BigInt(1000000e18));
             await gatetoken.approve(compound.address, BigInt(1000000e18));
             await gatetoken.transfer(accounts[1].address, BigInt(200000e18));
-            console.log(await gatetoken.balanceOf(accounts[0].address));
             await staking.addReward(BigInt(1000000e18));
+
+            await network.provider.send("evm_increaseTime", [60]);
+            await network.provider.send("evm_mine", []);
 
             await gatetoken
                 .connect(accounts[1])
@@ -48,7 +50,6 @@ describe("Workflow tests: ", function () {
                 .connect(accounts[1])
                 .approve(compound.address, BigInt(10000000e18));
 
-            console.log(await gatetoken.balanceOf(accounts[1].address));
             await compound.connect(accounts[1]).deposit(BigInt(9999e18));
             await network.provider.send("evm_increaseTime", [704800]);
             await network.provider.send("evm_mine", []);
@@ -56,12 +57,42 @@ describe("Workflow tests: ", function () {
             await compound.connect(accounts[1]).deposit(BigInt(9999e18));
             await compound.connect(accounts[1]).deposit(BigInt(9999e18));
             await compound.connect(accounts[0]).deposit(BigInt(9999e18));
-            await network.provider.send("evm_increaseTime", [70480000]);
+            await network.provider.send("evm_increaseTime", [70480000000]);
             await network.provider.send("evm_mine", []);
             await compound.connect(accounts[1]).withdrawAll();
             await compound.withdrawAll();
-            console.log(await gatetoken.balanceOf(accounts[1].address));
             console.log(await gatetoken.balanceOf(staking.address));
+            //await gatetoken.approve(staking.address, BigInt(10000000000e18));
+            //await gatetoken.approve(compound.address, BigInt(10000000000e18));
+            //
+            //await gatetoken
+            //    .connect(accounts[1])
+            //    .approve(staking.address, BigInt(10000000000e18));
+            //await gatetoken
+            //    .connect(accounts[1])
+            //    .approve(compound.address, BigInt(10000000000e18));
+            //
+            //await gatetoken.transfer(accounts[1].address, BigInt(1000e18));
+            //
+            //await staking.addReward(BigInt(1000000e18));
+            //
+            //await network.provider.send("evm_increaseTime", [60]);
+            //await network.provider.send("evm_mine", []);
+            //
+            //await compound.deposit(BigInt(1000e18));
+            //
+            //await network.provider.send("evm_increaseTime", [60]);
+            //await network.provider.send("evm_mine", []);
+            //
+            //await compound.connect(accounts[1]).deposit(BigInt(1000e18));
+            //
+            //await network.provider.send("evm_increaseTime", [3000000]);
+            //await network.provider.send("evm_mine", []);
+            //
+            //await compound.withdrawAll();
+            //await compound.connect(accounts[1]).withdrawAll();
+            //
+            //console.log(await gatetoken.balanceOf(staking.address));
         });
     });
 });
