@@ -16,7 +16,11 @@ module.exports = {
     solidity: "0.8.9",
     networks: {
         rinkeby: {
-            url: process.env.ALCHEMY_URL, //Infura url with projectId
+            url: process.env.RINKEBY_URL, //Infura url with projectId
+            accounts: [process.env.PRIVATE_KEY], // add the account that will deploy the contract (private key)
+        },
+        goerli: {
+            url: process.env.GOERLI_URL, //Infura url with projectId
             accounts: [process.env.PRIVATE_KEY], // add the account that will deploy the contract (private key)
         },
     },

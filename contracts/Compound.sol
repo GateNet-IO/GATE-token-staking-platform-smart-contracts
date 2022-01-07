@@ -99,9 +99,6 @@ contract Compound is Ownable {
             }
         }
 
-        console.log(totalShares * shareWorth + _excess);
-        console.log(stakedToken.balanceOf(address(staking)));
-
         if (totalShares > 0) {
             shares -= totalShares;
             staking.autoCompUnstake(totalShares * shareWorth);
@@ -166,7 +163,7 @@ contract Compound is Ownable {
     function currentAmount(address user) public view returns (uint256) {
         uint256 amount;
         for (uint256 i = 0; i < userInfo[user].length; i++) {
-            amount += userInfo[msg.sender][i].shares;
+            amount += userInfo[user][i].shares;
         }
         return amount;
     }

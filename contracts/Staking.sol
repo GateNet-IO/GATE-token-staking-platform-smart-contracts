@@ -143,10 +143,14 @@ contract Staking is Ownable {
         distributeReward(address(0))
     {
         require(amount > 0, "Cannot add 0 reward");
-        rewardRate += (amount) / (endDate - firstTimeRewardApplicable());
-        uint256 result = rewardRate * (endDate - firstTimeRewardApplicable());
-        stakedToken.transferFrom(msg.sender, address(this), result);
-        emit RewardAdded(result);
+        uint256 time = (endDate - firstTimeRewardApplicable());
+        rewardRate += (amount) / time;
+        stakedToken.transferFrom(
+            msg.sender,
+            address(this),
+            (amount / time) * time
+        );
+        emit RewardAdded((amount / time) * time);
     }
 
     function autoCompStake(uint256 amount) external onlyCompound {

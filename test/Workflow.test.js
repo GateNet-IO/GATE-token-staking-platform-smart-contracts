@@ -38,6 +38,7 @@ describe("Workflow tests: ", function () {
             await gatetoken.approve(staking.address, BigInt(1000000e18));
             await gatetoken.approve(compound.address, BigInt(1000000e18));
             await gatetoken.transfer(accounts[1].address, BigInt(200000e18));
+            await gatetoken.transfer(accounts[2].address, BigInt(200000e18));
             await staking.addReward(BigInt(1000000e18));
 
             await network.provider.send("evm_increaseTime", [60]);
@@ -45,6 +46,13 @@ describe("Workflow tests: ", function () {
 
             await gatetoken
                 .connect(accounts[1])
+                .approve(staking.address, BigInt(10000000e18));
+            await gatetoken
+                .connect(accounts[2])
+                .approve(compound.address, BigInt(10000000e18));
+
+            await gatetoken
+                .connect(accounts[2])
                 .approve(staking.address, BigInt(10000000e18));
             await gatetoken
                 .connect(accounts[1])
@@ -55,13 +63,16 @@ describe("Workflow tests: ", function () {
             await network.provider.send("evm_mine", []);
             await compound.connect(accounts[1]).deposit(BigInt(9999e18));
             await compound.connect(accounts[1]).deposit(BigInt(9999e18));
-            await compound.connect(accounts[1]).deposit(BigInt(9999e18));
+            await network.provider.send("evm_increaseTime", [1000]);
+            await network.provider.send("evm_mine", []);
+            await compound.connect(accounts[2]).deposit(BigInt(9999e18));
             await compound.connect(accounts[0]).deposit(BigInt(9999e18));
             await network.provider.send("evm_increaseTime", [70480000000]);
             await network.provider.send("evm_mine", []);
             await compound.connect(accounts[1]).withdrawAll();
+            await compound.connect(accounts[2]).withdrawAll();
             await compound.withdrawAll();
-            console.log(await gatetoken.balanceOf(staking.address));
+            //console.log(await gatetoken.balanceOf(staking.address));
             //await gatetoken.approve(staking.address, BigInt(10000000000e18));
             //await gatetoken.approve(compound.address, BigInt(10000000000e18));
             //
