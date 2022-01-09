@@ -3,8 +3,6 @@ pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./Staking.sol";
-import "hardhat/console.sol";
 
 // compound once a day
 contract Compound is Ownable {
@@ -69,8 +67,10 @@ contract Compound is Ownable {
 
     function claim() external started updateShareWorth {
         uint256 reward;
+
         reward += calculateFees(msg.sender);
         reward += fees[msg.sender];
+
         if (reward > 0) {
             fees[msg.sender] = 0;
             stakedToken.transfer(msg.sender, reward);
@@ -80,7 +80,9 @@ contract Compound is Ownable {
 
     function deposit(uint256 amount) external started updateShareWorth {
         require(amount >= MINIMUM_STAKE, "Stake too small");
+
         totalShares += (amount) / shareWorth;
+
         userInfo[msg.sender].push(
             UserInfo(
                 amount / shareWorth,
@@ -89,8 +91,10 @@ contract Compound is Ownable {
                 amount - ((amount / shareWorth) * shareWorth)
             )
         );
+
         totalStaked -= ((amount / shareWorth) * shareWorth);
         stakedToken.transfer(msg.sender, amount);
+
         emit Deposit(
             msg.sender,
             amount,
@@ -141,27 +145,34 @@ contract Compound is Ownable {
                 block.timestamp,
             "Minimum lock period hasn't passed"
         );
+
         totalShares -= _shares;
         userInfo[msg.sender][index].shares -= _shares;
+
         fees[msg.sender] +=
             (_shares * (feePerShare - userInfo[msg.sender][index].fee)) /
             1 ether;
+
         totalStaked -= _shares * shareWorth;
+
         stakedToken.transfer(
             msg.sender,
             _shares * shareWorth + userInfo[msg.sender][index].excess
         );
+
         emit Withdraw(msg.sender, currentAmount(msg.sender), _shares);
     }
 
     function calculateFees(address user) internal returns (uint256) {
         uint256 _fees;
+
         for (uint256 i = 0; i < userInfo[user].length; i++) {
             _fees += ((userInfo[user][i].shares *
                 (feePerShare - userInfo[user][i].fee)) / 1 ether);
 
             userInfo[user][i].fee = feePerShare;
         }
+
         return _fees;
     }
 
@@ -172,23 +183,28 @@ contract Compound is Ownable {
 
     function addReward(uint256 amount) external onlyOwner updateShareWorth {
         require(amount > 0, "Cannot add 0 reward");
+
         uint256 time = (endDate - firstTimeRewardApplicable());
         rewardRate += (amount) / time;
+
         stakedToken.transferFrom(
             msg.sender,
             address(this),
             (amount / time) * time
         );
+
         emit RewardAdded((amount / time) * time);
     }
 
     function feeDistribution(uint256 amount) external onlyOwner {
         require(amount > 0, "Cannot distribute 0 fee");
         require(totalStaked > 0, "Noone to distribute fee to");
+
         feePerShare += (amount * 1 ether) / (totalShares);
         uint256 result = (((amount * 1 ether) / (totalShares)) * totalShares) /
             1 ether;
         stakedToken.transferFrom(msg.sender, address(this), result);
+
         emit FeeDistributed(block.timestamp, result);
     }
 
@@ -196,9 +212,11 @@ contract Compound is Ownable {
 
     function currentAmount(address user) public view returns (uint256) {
         uint256 amount;
+
         for (uint256 i = 0; i < userInfo[user].length; i++) {
             amount += userInfo[user][i].shares;
         }
+
         return amount;
     }
 
