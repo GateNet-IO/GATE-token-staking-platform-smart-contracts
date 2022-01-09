@@ -17,28 +17,23 @@ describe("Compound contract: ", function () {
 
         const latestBlock = await hre.ethers.provider.getBlock("latest");
 
-        const Staking = await hre.ethers.getContractFactory("Staking");
-        staking = await Staking.deploy(
+        const Compound = await hre.ethers.getContractFactory("Compound");
+        compound = await Compound.deploy(
             gatetoken.address,
             latestBlock.timestamp,
             latestBlock.timestamp + 24 * 60 * 60 * 30
         );
 
-        await staking.deployed();
-
-        const Compound = await hre.ethers.getContractFactory("Compound");
-        compound = await Compound.deploy(gatetoken.address, staking.address);
-
         await compound.deployed();
-        staking.setCompoundAddress(compound.address);
+        compound.setCompoundAddress(compound.address);
     });
 
     describe("deposit: ", async function () {
         it("Should successfully deposit", async function () {
             await gatetoken.approve(compound.address, BigInt(1000e18));
             await compound.deposit(BigInt(1000e18));
-            expect(await staking.totalStaked()).to.equal(BigInt(1000e18));
-            expect(await gatetoken.balanceOf(staking.address)).to.equal(
+            expect(await compound.totalStaked()).to.equal(BigInt(1000e18));
+            expect(await gatetoken.balanceOf(compound.address)).to.equal(
                 BigInt(1000e18)
             );
             expect(await gatetoken.balanceOf(accounts[0].address)).to.equal(
@@ -70,8 +65,8 @@ describe("Compound contract: ", function () {
             await network.provider.send("evm_increaseTime", [7048000]);
             await network.provider.send("evm_mine", []);
             await compound.withdrawAll();
-            expect(await staking.totalStaked()).to.equal(0);
-            //expect(await gatetoken.balanceOf(staking.address)).to.equal(
+            expect(await compound.totalStaked()).to.equal(0);
+            //expect(await gatetoken.balanceOf(compound.address)).to.equal(
             //    BigInt(0)
             //);
             //expect(await gatetoken.balanceOf(accounts[0].address)).to.equal(
@@ -82,10 +77,10 @@ describe("Compound contract: ", function () {
         it("Should successfully withdraw", async function () {
             await gatetoken.approve(compound.address, BigInt(1000e18));
             await compound.deposit(BigInt(1000e18));
-            expect(await staking.totalStaked()).to.equal(BigInt(1000e18));
+            expect(await compound.totalStaked()).to.equal(BigInt(1000e18));
             await network.provider.send("evm_increaseTime", [3000000]);
             await compound.withdraw(1, 0);
-            expect(await staking.totalStaked()).to.equal(
+            expect(await compound.totalStaked()).to.equal(
                 BigInt(1000e18) - BigInt(await compound.shareWorth())
             );
         });
@@ -133,15 +128,15 @@ describe("Compound contract: ", function () {
     describe("calculateFees: ", async function () {
         it("Should claim all fees if only staker", async function () {
             await gatetoken.approve(compound.address, BigInt(10000e18));
-            await gatetoken.approve(staking.address, BigInt(10000e18));
+            await gatetoken.approve(compound.address, BigInt(10000e18));
             await compound.deposit(BigInt(1000e18));
 
             let balance = await gatetoken.balanceOf(accounts[0].address);
 
-            await staking.feeDistribution(BigInt(9e18));
+            await compound.feeDistribution(BigInt(9e18));
             await network.provider.send("evm_increaseTime", [3600]);
             await network.provider.send("evm_mine", []);
-            await staking.claim();
+            await compound.claim();
 
             expect(balance).to.equal(
                 await gatetoken.balanceOf(accounts[0].address)
@@ -152,7 +147,7 @@ describe("Compound contract: ", function () {
     describe("currentAmount: ", async function () {
         it("Should give current amount", async function () {
             await gatetoken.approve(compound.address, BigInt(10000e18));
-            await gatetoken.approve(staking.address, BigInt(10000e18));
+            await gatetoken.approve(compound.address, BigInt(10000e18));
             await compound.deposit(BigInt(1000e18));
 
             expect(await compound.currentAmount(accounts[0].address)).to.equal(

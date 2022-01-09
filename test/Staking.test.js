@@ -17,20 +17,15 @@ describe("Staking contract: ", function () {
 
         const latestBlock = await hre.ethers.provider.getBlock("latest");
 
-        const Staking = await hre.ethers.getContractFactory("Staking");
-        staking = await Staking.deploy(
+        const Compound = await hre.ethers.getContractFactory("Compound");
+        compound = await Compound.deploy(
             gatetoken.address,
-            latestBlock.timestamp + 60,
-            latestBlock.timestamp + 1814460
+            latestBlock.timestamp,
+            latestBlock.timestamp + 24 * 60 * 60 * 30
         );
 
-        await staking.deployed();
-
-        const Compound = await hre.ethers.getContractFactory("Compound");
-        compound = await Compound.deploy(gatetoken.address, staking.address);
-
         await compound.deployed();
-        staking.setCompoundAddress(compound.address);
+        compound.setCompoundAddress(compound.address);
     });
     describe("Started: ", async function () {
         beforeEach("Before Each: ", async function () {
@@ -40,11 +35,11 @@ describe("Staking contract: ", function () {
 
         describe("Unstaking: ", async function () {
             it("Should revert on 0 unstake", async function () {
-                await gatetoken.approve(staking.address, BigInt(1000e18));
-                await staking.stake(BigInt(1000e18));
+                await gatetoken.approve(compound.address, BigInt(1000e18));
+                await compound.stake(BigInt(1000e18));
 
                 try {
-                    await staking.unstake(0, 0);
+                    await compound.unstake(0, 0);
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'Cannot unstake 0'"
@@ -53,11 +48,11 @@ describe("Staking contract: ", function () {
             });
 
             it("Should revert on stake too big", async function () {
-                await gatetoken.approve(staking.address, BigInt(1000e18));
-                await staking.stake(BigInt(1000e18));
+                await gatetoken.approve(compound.address, BigInt(1000e18));
+                await compound.stake(BigInt(1000e18));
 
                 try {
-                    await staking.unstake(BigInt(2000e18), 0);
+                    await compound.unstake(BigInt(2000e18), 0);
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'Stake too big'"
@@ -66,11 +61,11 @@ describe("Staking contract: ", function () {
             });
 
             it("Should revert on minimum period not passed", async function () {
-                await gatetoken.approve(staking.address, BigInt(1000e18));
-                await staking.stake(BigInt(1000e18));
+                await gatetoken.approve(compound.address, BigInt(1000e18));
+                await compound.stake(BigInt(1000e18));
 
                 try {
-                    await staking.unstake(BigInt(1000e18), 0);
+                    await compound.unstake(BigInt(1000e18), 0);
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'Minimum lock period hasn't passed'"
@@ -82,7 +77,7 @@ describe("Staking contract: ", function () {
         describe("Staking: ", async function () {
             it("Should revert on non approved stake", async function () {
                 try {
-                    await staking.stake(BigInt(1000e18));
+                    await compound.stake(BigInt(1000e18));
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'ERC20: transfer amount exceeds allowance'"
@@ -91,18 +86,18 @@ describe("Staking contract: ", function () {
             });
 
             it("Should emit stake event with correct args", async function () {
-                await gatetoken.approve(staking.address, BigInt(1000e18));
+                await gatetoken.approve(compound.address, BigInt(1000e18));
 
-                expect(await staking.stake(BigInt(1000e18)))
+                expect(await compound.stake(BigInt(1000e18)))
                     .to.emit(staking, "Staked")
                     .withArgs(accounts[0].address, BigInt(1000e18));
             });
             //
             it("Should revert on too little stake", async function () {
-                await gatetoken.approve(staking.address, 1);
+                await gatetoken.approve(compound.address, 1);
 
                 try {
-                    await staking.stake(1);
+                    await compound.stake(1);
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'Stake too small'"
@@ -111,10 +106,10 @@ describe("Staking contract: ", function () {
             });
             //
             it("Should not revert on minimum stake", async function () {
-                await gatetoken.approve(staking.address, BigInt(1000e18));
+                await gatetoken.approve(compound.address, BigInt(1000e18));
 
                 try {
-                    await staking.stake(BigInt(1000e18));
+                    await compound.stake(BigInt(1000e18));
                 } catch (error) {
                     expect(error.message).to.equal("");
                 }
@@ -123,22 +118,22 @@ describe("Staking contract: ", function () {
 
         describe("Claim: ", async function () {
             it("Shouldn't change anything if reward is 0", async () => {
-                await staking.claim();
+                await compound.claim();
             });
 
             it("Should claim all fees if only staker", async () => {
                 await gatetoken.approve(
-                    staking.address,
+                    compound.address,
                     BigInt(100000000000000e18)
                 );
-                await staking.stake(BigInt(1000000e18));
+                await compound.stake(BigInt(1000000e18));
 
                 let balance = await gatetoken.balanceOf(accounts[0].address);
 
-                await staking.feeDistribution(BigInt(9e18));
+                await compound.feeDistribution(BigInt(9e18));
                 await network.provider.send("evm_increaseTime", [3600]);
                 await network.provider.send("evm_mine", []);
-                await staking.claim();
+                await compound.claim();
 
                 expect(balance).to.equal(
                     await gatetoken.balanceOf(accounts[0].address)
@@ -147,10 +142,10 @@ describe("Staking contract: ", function () {
 
             it("Should claim half the fees if 2 equal stakers", async () => {
                 await gatetoken.approve(
-                    staking.address,
+                    compound.address,
                     BigInt(100000000000000e18)
                 );
-                await staking.stake(BigInt(1000000e18));
+                await compound.stake(BigInt(1000000e18));
 
                 await gatetoken.transfer(
                     accounts[1].address,
@@ -159,19 +154,19 @@ describe("Staking contract: ", function () {
 
                 await gatetoken
                     .connect(accounts[1])
-                    .approve(staking.address, BigInt(100000000000000e18));
-                await staking.connect(accounts[1]).stake(BigInt(1000000e18));
+                    .approve(compound.address, BigInt(100000000000000e18));
+                await compound.connect(accounts[1]).stake(BigInt(1000000e18));
                 //
-                await staking.claim();
+                await compound.claim();
 
-                const tx1 = await staking.feeDistribution(BigInt(9e18));
+                const tx1 = await compound.feeDistribution(BigInt(9e18));
                 const rc1 = await tx1.wait();
                 const event1 = rc1.events.find(
                     (event) => event.event === "FeeDistributed"
                 );
                 const [block, amount1] = event1.args;
 
-                const tx2 = await staking.claim();
+                const tx2 = await compound.claim();
                 const rc2 = await tx2.wait();
                 const event2 = rc2.events.find(
                     (event) => event.event === "Claimed"
@@ -185,19 +180,19 @@ describe("Staking contract: ", function () {
         describe("PendingFee: ", async function () {
             it("Should show correct fee", async () => {
                 await gatetoken.approve(
-                    staking.address,
+                    compound.address,
                     BigInt(100000000000000e18)
                 );
-                await staking.stake(BigInt(1000000e18));
+                await compound.stake(BigInt(1000000e18));
 
-                const tx = await staking.feeDistribution(BigInt(9e18));
+                const tx = await compound.feeDistribution(BigInt(9e18));
                 const rc = await tx.wait();
                 const event = rc.events.find(
                     (event) => event.event === "FeeDistributed"
                 );
                 const [block, amount] = event.args;
 
-                expect(await staking.pendingFee(accounts[0].address)).to.equal(
+                expect(await compound.pendingFee(accounts[0].address)).to.equal(
                     amount
                 );
             });
@@ -206,7 +201,7 @@ describe("Staking contract: ", function () {
         describe("feeDistribution: ", async function () {
             it("Should revert on 0 fee", async () => {
                 try {
-                    await staking.feeDistribution(BigInt(0));
+                    await compound.feeDistribution(BigInt(0));
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'Cannot distribute 0 fee'"
@@ -217,16 +212,16 @@ describe("Staking contract: ", function () {
 
         describe("addReward: ", async function () {
             it("Should add reward", async () => {
-                await gatetoken.approve(staking.address, BigInt(10000e18));
+                await gatetoken.approve(compound.address, BigInt(10000e18));
 
-                const tx = await staking.addReward(BigInt(10000e18));
+                const tx = await compound.addReward(BigInt(10000e18));
                 const rc = await tx.wait();
                 const event = rc.events.find(
                     (event) => event.event === "RewardAdded"
                 );
                 const [amount] = event.args;
 
-                expect(await gatetoken.balanceOf(staking.address)).to.equal(
+                expect(await gatetoken.balanceOf(compound.address)).to.equal(
                     amount
                 );
             });
@@ -234,14 +229,14 @@ describe("Staking contract: ", function () {
 
         describe("setOnlyCompoundStaking: ", async function () {
             it("Should prevent non compound staking", async () => {
-                staking.setOnlyCompoundStaking(true);
+                compound.setOnlyCompoundStaking(true);
                 await gatetoken.approve(
-                    staking.address,
+                    compound.address,
                     BigInt(100000000000000e18)
                 );
 
                 try {
-                    await staking.stake(BigInt(1000000e18));
+                    await compound.stake(BigInt(1000000e18));
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'Only auto-compound staking allowed'"
@@ -250,14 +245,14 @@ describe("Staking contract: ", function () {
             });
 
             it("Should allow non compound staking", async () => {
-                staking.setOnlyCompoundStaking(false);
+                compound.setOnlyCompoundStaking(false);
                 await gatetoken.approve(
-                    staking.address,
+                    compound.address,
                     BigInt(100000000000000e18)
                 );
 
                 try {
-                    await staking.stake(BigInt(1000000e18));
+                    await compound.stake(BigInt(1000000e18));
                 } catch (error) {
                     expect(error.message).to.equal("");
                 }
@@ -267,22 +262,22 @@ describe("Staking contract: ", function () {
         describe("unstakeAll: ", async function () {
             it("Should unstakeAll", async () => {
                 await gatetoken.approve(
-                    staking.address,
+                    compound.address,
                     BigInt(100000000000000e18)
                 );
-                await staking.stake(BigInt(1000000e18));
-                await staking.stake(BigInt(1000000e18));
-                await staking.stake(BigInt(1000000e18));
+                await compound.stake(BigInt(1000000e18));
+                await compound.stake(BigInt(1000000e18));
+                await compound.stake(BigInt(1000000e18));
                 expect(
-                    await staking.totalUserStakes(accounts[0].address)
+                    await compound.totalUserStakes(accounts[0].address)
                 ).to.equal(3);
 
                 await network.provider.send("evm_increaseTime", [200000000]);
                 await network.provider.send("evm_mine", []);
 
-                let stakes = await staking.getUserStakes(accounts[0].address);
-                await staking.unstakeAll();
-                let newStakes = await staking.getUserStakes(
+                let stakes = await compound.getUserStakes(accounts[0].address);
+                await compound.unstakeAll();
+                let newStakes = await compound.getUserStakes(
                     accounts[0].address
                 );
                 expect(newStakes).not.to.equal(stakes);
@@ -294,27 +289,27 @@ describe("Staking contract: ", function () {
 
             it("Should skip recent stakes", async () => {
                 await gatetoken.approve(
-                    staking.address,
+                    compound.address,
                     BigInt(100000000000000e18)
                 );
 
-                await staking.stake(BigInt(1000000e18));
+                await compound.stake(BigInt(1000000e18));
 
                 await network.provider.send("evm_increaseTime", [350000]);
                 await network.provider.send("evm_mine", []);
 
-                await staking.stake(BigInt(1000000e18));
+                await compound.stake(BigInt(1000000e18));
 
                 await network.provider.send("evm_increaseTime", [350000]);
                 await network.provider.send("evm_mine", []);
 
                 expect(
-                    await staking.totalUserStakes(accounts[0].address)
+                    await compound.totalUserStakes(accounts[0].address)
                 ).to.equal(2);
 
-                let stakes = await staking.getUserStakes(accounts[0].address);
-                await staking.unstakeAll();
-                let newStakes = await staking.getUserStakes(
+                let stakes = await compound.getUserStakes(accounts[0].address);
+                await compound.unstakeAll();
+                let newStakes = await compound.getUserStakes(
                     accounts[0].address
                 );
                 expect(newStakes).not.to.equal(stakes);
@@ -328,7 +323,7 @@ describe("Staking contract: ", function () {
     describe("not started: ", async function () {
         it("Should not be able to stake", async () => {
             try {
-                await staking.stake(100000);
+                await compound.stake(100000);
             } catch (error) {
                 expect(error.message).to.equal(
                     "VM Exception while processing transaction: reverted with reason string 'Stake period hasn't started'"
@@ -338,7 +333,7 @@ describe("Staking contract: ", function () {
 
         it("Should not be able to unstake", async () => {
             try {
-                await staking.unstake(100000, 0);
+                await compound.unstake(100000, 0);
             } catch (error) {
                 expect(error.message).to.equal(
                     "VM Exception while processing transaction: reverted with reason string 'Stake period hasn't started'"
@@ -348,7 +343,7 @@ describe("Staking contract: ", function () {
 
         it("Should not be able to claim", async () => {
             try {
-                await staking.claim();
+                await compound.claim();
             } catch (error) {
                 expect(error.message).to.equal(
                     "VM Exception while processing transaction: reverted with reason string 'Stake period hasn't started'"
@@ -361,7 +356,7 @@ describe("Staking contract: ", function () {
         describe("addFee: ", async function () {
             it("Should revert", async () => {
                 try {
-                    await staking.addFee(accounts[0].address, 0);
+                    await compound.addFee(accounts[0].address, 0);
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'Only compound'"
@@ -372,7 +367,7 @@ describe("Staking contract: ", function () {
         describe("autoCompStake: ", async function () {
             it("Should revert", async () => {
                 try {
-                    await staking.autoCompStake(0);
+                    await compound.autoCompStake(0);
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'Only compound'"
@@ -383,7 +378,7 @@ describe("Staking contract: ", function () {
         describe("autoCompUnstake: ", async function () {
             it("Should revert", async () => {
                 try {
-                    await staking.autoCompUnstake(0);
+                    await compound.autoCompUnstake(0);
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'Only compound'"
@@ -394,7 +389,7 @@ describe("Staking contract: ", function () {
         describe("transferReward: ", async function () {
             it("Should revert", async () => {
                 try {
-                    await staking.transferReward(0, accounts[0].address);
+                    await compound.transferReward(0, accounts[0].address);
                 } catch (error) {
                     expect(error.message).to.equal(
                         "VM Exception while processing transaction: reverted with reason string 'Only compound'"

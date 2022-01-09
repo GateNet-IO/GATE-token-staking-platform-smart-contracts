@@ -17,43 +17,38 @@ describe("Workflow tests: ", function () {
 
         const latestBlock = await hre.ethers.provider.getBlock("latest");
 
-        const Staking = await hre.ethers.getContractFactory("Staking");
-        staking = await Staking.deploy(
+        const Compound = await hre.ethers.getContractFactory("Compound");
+        compound = await Compound.deploy(
             gatetoken.address,
-            latestBlock.timestamp + 60,
-            latestBlock.timestamp + 60 + 2592000
+            latestBlock.timestamp,
+            latestBlock.timestamp + 24 * 60 * 60 * 30
         );
 
-        await staking.deployed();
-
-        const Compound = await hre.ethers.getContractFactory("Compound");
-        compound = await Compound.deploy(gatetoken.address, staking.address);
-
         await compound.deployed();
-        staking.setCompoundAddress(compound.address);
+        compound.setCompoundAddress(compound.address);
     });
 
     describe("Test: ", async function () {
         it("Daz txns", async function () {
-            await gatetoken.approve(staking.address, BigInt(1000000e18));
+            await gatetoken.approve(compound.address, BigInt(1000000e18));
             await gatetoken.approve(compound.address, BigInt(1000000e18));
             await gatetoken.transfer(accounts[1].address, BigInt(200000e18));
             await gatetoken.transfer(accounts[2].address, BigInt(200000e18));
-            await staking.addReward(BigInt(1000000e18));
+            await compound.addReward(BigInt(1000000e18));
 
             await network.provider.send("evm_increaseTime", [60]);
             await network.provider.send("evm_mine", []);
 
             await gatetoken
                 .connect(accounts[1])
-                .approve(staking.address, BigInt(10000000e18));
+                .approve(compound.address, BigInt(10000000e18));
             await gatetoken
                 .connect(accounts[2])
                 .approve(compound.address, BigInt(10000000e18));
 
             await gatetoken
                 .connect(accounts[2])
-                .approve(staking.address, BigInt(10000000e18));
+                .approve(compound.address, BigInt(10000000e18));
             await gatetoken
                 .connect(accounts[1])
                 .approve(compound.address, BigInt(10000000e18));
@@ -72,20 +67,20 @@ describe("Workflow tests: ", function () {
             await compound.connect(accounts[1]).withdrawAll();
             await compound.connect(accounts[2]).withdrawAll();
             await compound.withdrawAll();
-            //console.log(await gatetoken.balanceOf(staking.address));
-            //await gatetoken.approve(staking.address, BigInt(10000000000e18));
+            //console.log(await gatetoken.balanceOf(compound.address));
+            //await gatetoken.approve(compound.address, BigInt(10000000000e18));
             //await gatetoken.approve(compound.address, BigInt(10000000000e18));
             //
             //await gatetoken
             //    .connect(accounts[1])
-            //    .approve(staking.address, BigInt(10000000000e18));
+            //    .approve(compound.address, BigInt(10000000000e18));
             //await gatetoken
             //    .connect(accounts[1])
             //    .approve(compound.address, BigInt(10000000000e18));
             //
             //await gatetoken.transfer(accounts[1].address, BigInt(1000e18));
             //
-            //await staking.addReward(BigInt(1000000e18));
+            //await compound.addReward(BigInt(1000000e18));
             //
             //await network.provider.send("evm_increaseTime", [60]);
             //await network.provider.send("evm_mine", []);
@@ -103,7 +98,7 @@ describe("Workflow tests: ", function () {
             //await compound.withdrawAll();
             //await compound.connect(accounts[1]).withdrawAll();
             //
-            //console.log(await gatetoken.balanceOf(staking.address));
+            //console.log(await gatetoken.balanceOf(compound.address));
         });
     });
 });
