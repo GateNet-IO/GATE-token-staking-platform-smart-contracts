@@ -81,8 +81,6 @@ contract Compound is Ownable {
     function deposit(uint256 amount) external started updateShareWorth {
         require(amount >= MINIMUM_STAKE, "Stake too small");
 
-        totalShares += (amount) / shareWorth;
-
         userInfo[msg.sender].push(
             UserInfo(
                 amount / shareWorth,
@@ -92,7 +90,8 @@ contract Compound is Ownable {
             )
         );
 
-        totalStaked -= ((amount / shareWorth) * shareWorth);
+        totalShares += (amount) / shareWorth;
+        totalStaked += ((amount / shareWorth) * shareWorth);
         stakedToken.transferFrom(msg.sender, address(this), amount);
 
         emit Deposit(
