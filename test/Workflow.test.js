@@ -29,8 +29,7 @@ describe("Workflow tests: ", function () {
 
     describe("Test: ", async function () {
         it("Daz txns", async function () {
-            await gatetoken.approve(compound.address, BigInt(1000000e18));
-            await gatetoken.approve(compound.address, BigInt(1000000e18));
+            await gatetoken.approve(compound.address, BigInt(2000000e18));
             await gatetoken.transfer(accounts[1].address, BigInt(200000e18));
             await gatetoken.transfer(accounts[2].address, BigInt(200000e18));
             await compound.addReward(BigInt(1000000e18));
