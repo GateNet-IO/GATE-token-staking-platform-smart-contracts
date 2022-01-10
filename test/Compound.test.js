@@ -25,7 +25,6 @@ describe("Compound contract: ", function () {
         );
 
         await compound.deployed();
-        compound.setCompoundAddress(compound.address);
     });
 
     describe("deposit: ", async function () {

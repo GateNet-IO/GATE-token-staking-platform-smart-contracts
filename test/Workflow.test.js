@@ -25,7 +25,6 @@ describe("Workflow tests: ", function () {
         );
 
         await compound.deployed();
-        compound.setCompoundAddress(compound.address);
     });
 
     describe("Test: ", async function () {
