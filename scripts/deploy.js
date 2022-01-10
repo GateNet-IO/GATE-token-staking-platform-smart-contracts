@@ -20,31 +20,17 @@ async function main() {
     await gatetoken.deployTransaction.wait(5);
     console.log("token: " + gatetoken.address);
 
-    const Staking = await hre.ethers.getContractFactory("Staking");
-    const staking = await Staking.deploy(gatetoken.address, Start, End);
-
-    await staking.deployTransaction.wait(5);
-    console.log("staking: " + staking.address);
-
     const Compound = await hre.ethers.getContractFactory("Compound");
-    const compound = await Compound.deploy(gatetoken.address, staking.address);
+    const compound = await Compound.deploy(gatetoken.address, Start, End);
 
     await compound.deployTransaction.wait(5);
     console.log("compound: " + compound.address);
 
     await hre.run("verify:verify", {
         address: compound.address,
-        constructorArguments: [gatetoken.address, staking.address],
+        constructorArguments: [gatetoken.address, Start, End],
         contract: "contracts/Compound.sol:Compound",
     });
-
-    await hre.run("verify:verify", {
-        address: staking.address,
-        constructorArguments: [gatetoken.address, Start, End],
-        contract: "contracts/Staking.sol:Staking",
-    });
-
-    await staking.setCompoundAddress(compound.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

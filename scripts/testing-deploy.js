@@ -13,20 +13,11 @@ async function main() {
     start.setDate(start.getDate());
     const Start = Math.floor(start.getTime() / 1000);
 
-    const Staking = await hre.ethers.getContractFactory("Staking");
-    const staking = await Staking.deploy(
-        "0x0acde866f8b214f30cffe1381a150e4246ba1398",
-        Start,
-        End
-    );
-
-    await staking.deployTransaction.wait(5);
-    console.log("staking: " + staking.address);
-
     const Compound = await hre.ethers.getContractFactory("Compound");
     const compound = await Compound.deploy(
         "0x0acde866f8b214f30cffe1381a150e4246ba1398",
-        staking.address
+        Start,
+        End
     );
 
     await compound.deployTransaction.wait(5);
@@ -36,22 +27,11 @@ async function main() {
         address: compound.address,
         constructorArguments: [
             "0x0acde866f8b214f30cffe1381a150e4246ba1398",
-            staking.address,
-        ],
-        contract: "contracts/Compound.sol:Compound",
-    });
-
-    await hre.run("verify:verify", {
-        address: staking.address,
-        constructorArguments: [
-            "0x0acde866f8b214f30cffe1381a150e4246ba1398",
             Start,
             End,
         ],
-        contract: "contracts/Staking.sol:Staking",
+        contract: "contracts/Compound.sol:Compound",
     });
-
-    await staking.setCompoundAddress(compound.address);
 }
 
 // We recommend this pattern to be able to use async/await everywhere

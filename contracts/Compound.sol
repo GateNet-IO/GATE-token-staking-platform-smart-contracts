@@ -181,7 +181,7 @@ contract Compound is Ownable {
         emit Harvest(msg.sender);
     }
 
-    function addReward(uint256 amount) external onlyOwner updateShareWorth {
+    function addReward(uint256 amount) external updateShareWorth {
         require(amount > 0, "Cannot add 0 reward");
 
         uint256 time = (endDate - firstTimeRewardApplicable());
@@ -196,7 +196,7 @@ contract Compound is Ownable {
         emit RewardAdded((amount / time) * time);
     }
 
-    function feeDistribution(uint256 amount) external onlyOwner {
+    function feeDistribution(uint256 amount) external {
         require(amount > 0, "Cannot distribute 0 fee");
         require(totalStaked > 0, "Noone to distribute fee to");
 
