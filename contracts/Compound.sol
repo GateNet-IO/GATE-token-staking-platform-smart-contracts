@@ -93,7 +93,7 @@ contract Compound is Ownable {
         );
 
         totalStaked -= ((amount / shareWorth) * shareWorth);
-        stakedToken.transfer(msg.sender, amount);
+        stakedToken.transferFrom(msg.sender, address(this), amount);
 
         emit Deposit(
             msg.sender,
