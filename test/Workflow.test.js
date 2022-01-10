@@ -29,7 +29,7 @@ describe("Workflow tests: ", function () {
 
     describe("Test: ", async function () {
         it("Daz txns", async function () {
-            await gatetoken.approve(compound.address, BigInt(2000000e18));
+            await gatetoken.approve(compound.address, BigInt(4000000e18));
             await gatetoken.transfer(accounts[1].address, BigInt(200000e18));
             await gatetoken.transfer(accounts[2].address, BigInt(200000e18));
             await compound.addReward(BigInt(1000000e18));
@@ -39,17 +39,10 @@ describe("Workflow tests: ", function () {
 
             await gatetoken
                 .connect(accounts[1])
-                .approve(compound.address, BigInt(10000000e18));
+                .approve(compound.address, BigInt(20000000e18));
             await gatetoken
                 .connect(accounts[2])
-                .approve(compound.address, BigInt(10000000e18));
-
-            await gatetoken
-                .connect(accounts[2])
-                .approve(compound.address, BigInt(10000000e18));
-            await gatetoken
-                .connect(accounts[1])
-                .approve(compound.address, BigInt(10000000e18));
+                .approve(compound.address, BigInt(20000000e18));
 
             await compound.connect(accounts[1]).deposit(BigInt(9999e18));
             await network.provider.send("evm_increaseTime", [704800]);
