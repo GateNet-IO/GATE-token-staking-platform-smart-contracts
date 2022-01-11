@@ -143,22 +143,6 @@ describe("Compound contract: ", function () {
         });
     });
 
-    describe("harvest: ", async function () {
-        it("Test harvest function", async function () {
-            await gatetoken.approve(compound.address, BigInt(10000e18));
-            await compound.deposit(BigInt(1000e18));
-
-            let balance = await gatetoken.balanceOf(accounts[0].address);
-
-            await compound.feeDistribution(BigInt(9e18));
-            await network.provider.send("evm_increaseTime", [3600]);
-            await network.provider.send("evm_mine", []);
-            await compound.harvest();
-        });
-    });
-
-
-
     describe("currentAmount: ", async function () {
         it("Should give current amount", async function () {
             await gatetoken.approve(compound.address, BigInt(10000e18));

@@ -16,7 +16,7 @@ contract Compound is Ownable {
     }
 
     uint256 public constant MINIMUM_STAKE = 1000 ether;
-    uint256 public constant LOCK_PERIOD = 7 days;
+    uint256 public constant LOCK_PERIOD = 1 hours;
 
     uint256 public totalStaked; // total amount of tokens staked
     uint256 public totalShares;
@@ -42,12 +42,11 @@ contract Compound is Ownable {
     );
 
     event Withdraw(address indexed sender, uint256 amount, uint256 shares);
-    event Harvest(address indexed sender);
     event Staked(address indexed user, uint256 amount);
     event Claimed(address indexed user, uint256 amount);
-    event FeeDistributed(uint256 block, uint256 amount);
+    event FeeDistributed(uint256 block, uint256 amount, uint256 totalSharesAtEvent);
     event Unstaked(address indexed user, uint256 amount, uint256 index);
-    event RewardAdded(uint256 amount);
+    event RewardAdded(uint256 amount, uint256 rewardRateIncrease);
 
     /* ========== CONSTRUCTOR ========== */
 
@@ -175,11 +174,6 @@ contract Compound is Ownable {
         return _fees;
     }
 
-    /* ========== RESTRICTED FUNCTIONS ========== */
-    function harvest() external updateShareWorth {
-        emit Harvest(msg.sender);
-    }
-
     function addReward(uint256 amount) external updateShareWorth {
         require(amount > 0, "Cannot add 0 reward");
 
@@ -192,7 +186,7 @@ contract Compound is Ownable {
             (amount / time) * time
         );
 
-        emit RewardAdded((amount / time) * time);
+        emit RewardAdded((amount / time) * time, (amount) / time);
     }
 
     function feeDistribution(uint256 amount) external {
@@ -204,7 +198,7 @@ contract Compound is Ownable {
             1 ether;
         stakedToken.transferFrom(msg.sender, address(this), result);
 
-        emit FeeDistributed(block.timestamp, result);
+        emit FeeDistributed(block.timestamp, result, totalShares);
     }
 
     /* ========== VIEWS ========== */
