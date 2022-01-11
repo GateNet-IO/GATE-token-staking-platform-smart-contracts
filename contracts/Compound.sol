@@ -75,7 +75,7 @@ contract Compound is Ownable {
             emit Claimed(msg.sender, reward);
         }
     }
-    
+
     function deposit(uint256 amount) external started updateShareWorth {
         require(amount >= MINIMUM_STAKE, "Stake too small");
 
@@ -125,7 +125,6 @@ contract Compound is Ownable {
 
         if (feesReward > 0) {
             fees[msg.sender] = 0;
-            stakedToken.transfer(msg.sender, feesReward);
             emit Claimed(msg.sender, feesReward);
         }
 
@@ -134,7 +133,7 @@ contract Compound is Ownable {
             totalStaked -= _totalShares * shareWorth;
             stakedToken.transfer(
                 msg.sender,
-                _totalShares * shareWorth + _excess
+                _totalShares * shareWorth + _excess + feesReward
             );
             emit Withdraw(msg.sender, currentAmount(msg.sender), _totalShares);
         }
