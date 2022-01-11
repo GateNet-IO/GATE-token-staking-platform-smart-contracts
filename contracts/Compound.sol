@@ -131,11 +131,13 @@ contract Compound is Ownable {
         if (totalShares > 0) {
             totalShares -= _totalShares;
             totalStaked -= _totalShares * shareWorth;
+            uint256 sendingAmount = _totalShares * shareWorth + _excess + feesReward;
+
             stakedToken.transfer(
                 msg.sender,
-                _totalShares * shareWorth + _excess + feesReward
+                sendingAmount
             );
-            emit Withdraw(msg.sender, currentAmount(msg.sender), _totalShares);
+            emit Withdraw(msg.sender, sendingAmount, _totalShares);
         }
     }
 
