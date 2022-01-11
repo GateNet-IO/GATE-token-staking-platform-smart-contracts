@@ -63,7 +63,6 @@ contract Compound is Ownable {
     }
 
     /* ========== MUTATIVE FUNCTIONS ========== */
-
     function claim() external started updateShareWorth {
         uint256 reward;
 
@@ -76,7 +75,7 @@ contract Compound is Ownable {
             emit Claimed(msg.sender, reward);
         }
     }
-
+    
     function deposit(uint256 amount) external started updateShareWorth {
         require(amount >= MINIMUM_STAKE, "Stake too small");
 
@@ -101,7 +100,9 @@ contract Compound is Ownable {
         );
     }
 
-    function withdrawAll() external updateShareWorth {
+    function withdrawAll() external 
+        started
+        updateShareWorth {
         uint256 _totalShares;
         uint256 _excess;
 
@@ -115,9 +116,17 @@ contract Compound is Ownable {
                 _totalShares += _shares;
                 _excess += userInfo[msg.sender][i].excess;
                 userInfo[msg.sender][i].shares -= _shares;
-                fees[msg.sender] = ((_shares *
+                fees[msg.sender] += ((_shares *
                     (feePerShare - userInfo[msg.sender][i].fee)) / 1 ether);
             }
+        }
+
+        uint256 feesReward = fees[msg.sender];
+
+        if (feesReward > 0) {
+            fees[msg.sender] = 0;
+            stakedToken.transfer(msg.sender, feesReward);
+            emit Claimed(msg.sender, feesReward);
         }
 
         if (totalShares > 0) {
@@ -129,36 +138,6 @@ contract Compound is Ownable {
             );
             emit Withdraw(msg.sender, currentAmount(msg.sender), _totalShares);
         }
-    }
-
-    function withdraw(uint256 _shares, uint256 index)
-        public
-        started
-        updateShareWorth
-    {
-        require(_shares > 0, "Cannot unstake 0");
-        require(_shares <= userInfo[msg.sender][index].shares, "Stake too big");
-        require(
-            userInfo[msg.sender][index].stakeTime + LOCK_PERIOD <=
-                block.timestamp,
-            "Minimum lock period hasn't passed"
-        );
-
-        totalShares -= _shares;
-        userInfo[msg.sender][index].shares -= _shares;
-
-        fees[msg.sender] +=
-            (_shares * (feePerShare - userInfo[msg.sender][index].fee)) /
-            1 ether;
-
-        totalStaked -= _shares * shareWorth;
-
-        stakedToken.transfer(
-            msg.sender,
-            _shares * shareWorth + userInfo[msg.sender][index].excess
-        );
-
-        emit Withdraw(msg.sender, currentAmount(msg.sender), _shares);
     }
 
     function calculateFees(address user) internal returns (uint256) {

@@ -72,56 +72,6 @@ describe("Compound contract: ", function () {
             //    BigInt(await gatetoken.totalSupply())
             //);
         });
-
-        it("Should successfully withdraw", async function () {
-            await gatetoken.approve(compound.address, BigInt(1000e18));
-            await compound.deposit(BigInt(1000e18));
-            expect(await compound.totalStaked()).to.equal(BigInt(1000e18));
-            await network.provider.send("evm_increaseTime", [3000000]);
-            await compound.withdraw(1, 0);
-            expect(await compound.totalStaked()).to.equal(
-                BigInt(1000e18) - BigInt(await compound.shareWorth())
-            );
-        });
-
-        it("Should revert on zero withdraw", async function () {
-            await gatetoken.approve(compound.address, BigInt(1000e18));
-            await compound.deposit(BigInt(1000e18));
-
-            try {
-                await compound.withdraw(0, 0);
-            } catch (error) {
-                expect(error.message).to.equal(
-                    "VM Exception while processing transaction: reverted with reason string 'Cannot unstake 0'"
-                );
-            }
-        });
-
-        it("Should revert on too big withdraw", async function () {
-            await gatetoken.approve(compound.address, BigInt(1000e18));
-            await compound.deposit(BigInt(1000e18));
-
-            try {
-                await compound.withdraw(BigInt(10000), 0);
-            } catch (error) {
-                expect(error.message).to.equal(
-                    "VM Exception while processing transaction: reverted with reason string 'Stake too big'"
-                );
-            }
-        });
-
-        it("Should revert on too fast withdraw", async function () {
-            await gatetoken.approve(compound.address, BigInt(1000e18));
-            await compound.deposit(BigInt(1000e18));
-
-            try {
-                await compound.withdraw(BigInt(1000), 0);
-            } catch (error) {
-                expect(error.message).to.equal(
-                    "VM Exception while processing transaction: reverted with reason string 'Minimum lock period hasn't passed'"
-                );
-            }
-        });
     });
 
     describe("calculateFees: ", async function () {
@@ -162,50 +112,10 @@ describe("Compound contract: ", function () {
         });
 
         describe("Unstaking: ", async function () {
-            it("Should revert on 0 unstake", async function () {
-                await gatetoken.approve(compound.address, BigInt(1000e18));
-                await compound.deposit(BigInt(1000e18));
-
-                try {
-                    await compound.withdraw(0, 0);
-                } catch (error) {
-                    expect(error.message).to.equal(
-                        "VM Exception while processing transaction: reverted with reason string 'Cannot unstake 0'"
-                    );
-                }
-            });
             describe("Started: ", async function () {
                 beforeEach("Before Each: ", async function () {
                     await network.provider.send("evm_increaseTime", [3600]);
                     await network.provider.send("evm_mine", []);
-                });
-        
-                describe("Unstaking: ", async function () {
-                    it("Should revert on 0 unstake", async function () {
-                        await gatetoken.approve(compound.address, BigInt(1000e18));
-                        await compound.deposit(BigInt(1000e18));
-        
-                        try {
-                            await compound.withdraw(0, 0);
-                        } catch (error) {
-                            expect(error.message).to.equal(
-                                "VM Exception while processing transaction: reverted with reason string 'Cannot unstake 0'"
-                            );
-                        }
-                    });
-
-                    it("Should revert on minimum period not passed", async function () {
-                        await gatetoken.approve(compound.address, BigInt(1000e18));
-                        await compound.deposit(BigInt(1000e18));
-        
-                        try {
-                            await compound.withdrawAll();
-                        } catch (error) {
-                            expect(error.message).to.equal(
-                                "VM Exception while processing transaction: reverted with reason string 'Minimum lock period hasn't passed'"
-                            );
-                        }
-                    });
                 });
         
                 describe("Staking: ", async function () {
