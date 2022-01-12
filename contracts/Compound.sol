@@ -123,13 +123,13 @@ contract Compound is Ownable {
 
         uint256 feesReward = fees[msg.sender];
 
-        if (feesReward > 0) {
+        if (feesReward > 0 && _totalShares > 0) {
             fees[msg.sender] = 0;
             emit Claimed(msg.sender, feesReward);
         }
 
-        if (totalShares > 0) {
-            totalShares -= _totalShares;
+        if (_totalShares > 0) {
+            totalShares -= _totalShares;    
             totalStaked -= _totalShares * shareWorth;
             uint256 sendingAmount = _totalShares * shareWorth + _excess + feesReward;
 
