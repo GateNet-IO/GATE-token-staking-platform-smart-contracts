@@ -16,7 +16,7 @@ contract Compound is Ownable {
     }
 
     uint256 public constant MINIMUM_STAKE = 1000 ether;
-    uint256 public constant LOCK_PERIOD = 1 hours;
+    uint256 public constant LOCK_PERIOD = 30 hours;
 
     uint256 public totalStaked; // total amount of tokens staked
     uint256 public totalShares;
@@ -210,7 +210,7 @@ contract Compound is Ownable {
 
     function lastTimeRewardApplicable() public view returns (uint256) {
         return block.timestamp < endDate ? block.timestamp : endDate;
-    }
+    }   
 
     function firstTimeRewardApplicable() public view returns (uint256) {
         return block.timestamp < beginDate ? beginDate : block.timestamp;
@@ -233,21 +233,21 @@ contract Compound is Ownable {
         return newShareWorth;
     }
 
-    function currentWithdrawalPossible() public view returns (uint256) {
+    function currentWithdrawalPossible(address user) public view returns (uint256) {
         uint256 _totalShares;
         uint256 _excess;
         uint256 _feePayout;
-        for (uint256 i = 0; i < userInfo[msg.sender].length; i++) {
+        for (uint256 i = 0; i < userInfo[user].length; i++) {
             if (
-                userInfo[msg.sender][i].stakeTime + LOCK_PERIOD <=
+                userInfo[user][i].stakeTime + LOCK_PERIOD <=
                 block.timestamp &&
-                userInfo[msg.sender][i].shares > 0
+                userInfo[user][i].shares > 0
             ) {
-                uint256 _shares = userInfo[msg.sender][i].shares;
+                uint256 _shares = userInfo[user][i].shares;
                 _totalShares += _shares;
-                _excess += userInfo[msg.sender][i].excess;
+                _excess += userInfo[user][i].excess;
                 _feePayout += ((_shares *
-                    (feePerShare - userInfo[msg.sender][i].fee)) / 1 ether);
+                    (feePerShare - userInfo[user][i].fee)) / 1 ether);
             }
         }
 
