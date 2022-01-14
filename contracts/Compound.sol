@@ -95,7 +95,7 @@ contract Compound is Ownable {
         emit Deposit(
             msg.sender,
             amount,
-            currentAmount(msg.sender),
+            amount / shareWorth,
             block.timestamp
         );
     }
@@ -141,10 +141,12 @@ contract Compound is Ownable {
         }
     }
 
+
     function calculateFees(address user) internal returns (uint256) {
         uint256 _fees;
 
         for (uint256 i = 0; i < userInfo[user].length; i++) {
+            
             _fees += ((userInfo[user][i].shares *
                 (feePerShare - userInfo[user][i].fee)) / 1 ether);
 
@@ -183,6 +185,19 @@ contract Compound is Ownable {
 
     /* ========== VIEWS ========== */
 
+    function currentFees(address user) public view returns (uint256) {
+        uint256 _fees;
+
+        for (uint256 i = 0; i < userInfo[user].length; i++) {
+            
+            _fees += ((userInfo[user][i].shares *
+                (feePerShare - userInfo[user][i].fee)) / 1 ether);
+
+        }
+
+        return _fees;
+    }
+
     function currentAmount(address user) public view returns (uint256) {
         uint256 amount;
 
@@ -201,7 +216,50 @@ contract Compound is Ownable {
         return block.timestamp < beginDate ? beginDate : block.timestamp;
     }
 
+    function currentShareWorth() public view returns (uint256) {
+        uint256 newShareWorth = shareWorth;
+        uint256 newTotalStaked = totalStaked;
+        if (newTotalStaked > 0) {
+            for (
+                uint256 i = 0;
+                i < (lastTimeRewardApplicable() - lastUpdateTime) / 1 hours;
+                i++
+            ) {
+                uint256 placeHolder = newShareWorth;
+                newShareWorth += (newShareWorth * 1 hours * rewardRate) / newTotalStaked;
+                newTotalStaked += totalShares * (newShareWorth - placeHolder);
+            }
+        }
+        return newShareWorth;
+    }
+
+    function currentWithdrawalPossible() public view returns (uint256) {
+        uint256 _totalShares;
+        uint256 _excess;
+        uint256 _feePayout;
+        for (uint256 i = 0; i < userInfo[msg.sender].length; i++) {
+            if (
+                userInfo[msg.sender][i].stakeTime + LOCK_PERIOD <=
+                block.timestamp &&
+                userInfo[msg.sender][i].shares > 0
+            ) {
+                uint256 _shares = userInfo[msg.sender][i].shares;
+                _totalShares += _shares;
+                _excess += userInfo[msg.sender][i].excess;
+                _feePayout += ((_shares *
+                    (feePerShare - userInfo[msg.sender][i].fee)) / 1 ether);
+            }
+        }
+
+        if (_totalShares > 0) {
+            return _totalShares * shareWorth + _excess + _feePayout;
+        } else {
+            return 0;
+        }
+    }
+
     /* ========== MODIFIERS ========== */
+
 
     modifier updateShareWorth() {
         if (totalStaked > 0) {
