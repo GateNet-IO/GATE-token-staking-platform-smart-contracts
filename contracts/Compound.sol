@@ -16,7 +16,7 @@ contract Compound is Ownable {
     }
 
     uint256 public constant MINIMUM_STAKE = 1000 ether;
-    uint256 public constant LOCK_PERIOD = 30 hours;
+    uint256 public constant LOCK_PERIOD = 1 hours;
 
     uint256 public totalStaked; // total amount of tokens staked
     uint256 public totalShares;
