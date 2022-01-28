@@ -72,6 +72,22 @@ describe("Compound contract: ", function () {
             //    BigInt(await gatetoken.totalSupply())
             //);
         });
+
+        it("Should successfully withdraw", async function () {
+            await gatetoken.approve(compound.address, BigInt(3000e18));
+            await compound.deposit(BigInt(1000e18));
+            await compound.deposit(BigInt(2000e18));
+            await network.provider.send("evm_increaseTime", [7048000]);
+            await network.provider.send("evm_mine", []);
+            await compound.withdraw(1);
+            expect(await compound.totalStaked()).to.equal(BigInt(1000e18));
+            //expect(await gatetoken.balanceOf(compound.address)).to.equal(
+            //    BigInt(0)
+            //);
+            //expect(await gatetoken.balanceOf(accounts[0].address)).to.equal(
+            //    BigInt(await gatetoken.totalSupply())
+            //);
+        });
     });
 
     describe("calculateFees: ", async function () {
@@ -117,7 +133,7 @@ describe("Compound contract: ", function () {
                     await network.provider.send("evm_increaseTime", [3600]);
                     await network.provider.send("evm_mine", []);
                 });
-        
+
                 describe("Staking: ", async function () {
                     it("Should revert on non approved stake", async function () {
                         try {
@@ -128,10 +144,10 @@ describe("Compound contract: ", function () {
                             );
                         }
                     });
-        
+
                     it("Should revert on too little stake", async function () {
                         await gatetoken.approve(compound.address, 1);
-        
+
                         try {
                             await compound.deposit(1);
                         } catch (error) {
@@ -142,8 +158,11 @@ describe("Compound contract: ", function () {
                     });
                     //
                     it("Should not revert on minimum stake", async function () {
-                        await gatetoken.approve(compound.address, BigInt(1000e18));
-        
+                        await gatetoken.approve(
+                            compound.address,
+                            BigInt(1000e18)
+                        );
+
                         try {
                             await compound.deposit(BigInt(1000e18));
                         } catch (error) {
@@ -151,57 +170,66 @@ describe("Compound contract: ", function () {
                         }
                     });
                 });
-        
+
                 describe("Claim: ", async function () {
                     it("Shouldn't change anything if reward is 0", async () => {
                         await compound.claim();
                     });
-        
+
                     it("Should claim all fees if only staker", async () => {
                         await gatetoken.approve(
                             compound.address,
                             BigInt(100000000000000e18)
                         );
                         await compound.deposit(BigInt(1000000e18));
-        
-                        let balance = await gatetoken.balanceOf(accounts[0].address);
-        
+
+                        let balance = await gatetoken.balanceOf(
+                            accounts[0].address
+                        );
+
                         await compound.feeDistribution(BigInt(9e18));
                         await network.provider.send("evm_increaseTime", [3600]);
                         await network.provider.send("evm_mine", []);
                         await compound.claim();
-        
+
                         expect(balance).to.equal(
                             await gatetoken.balanceOf(accounts[0].address)
                         );
                     });
-        
+
                     it("Should claim half the fees if 2 equal stakers", async () => {
                         await gatetoken.approve(
                             compound.address,
                             BigInt(100000000000000e18)
                         );
                         await compound.deposit(BigInt(1000000e18));
-        
+
                         await gatetoken.transfer(
                             accounts[1].address,
                             BigInt(1000000e18)
                         );
-        
+
                         await gatetoken
                             .connect(accounts[1])
-                            .approve(compound.address, BigInt(100000000000000e18));
-                        await compound.connect(accounts[1]).deposit(BigInt(1000000e18));
+                            .approve(
+                                compound.address,
+                                BigInt(100000000000000e18)
+                            );
+                        await compound
+                            .connect(accounts[1])
+                            .deposit(BigInt(1000000e18));
                         //
                         await compound.claim();
-        
-                        const tx1 = await compound.feeDistribution(BigInt(9e18));
+
+                        const tx1 = await compound.feeDistribution(
+                            BigInt(9e18)
+                        );
                         const rc1 = await tx1.wait();
                         const event1 = rc1.events.find(
                             (event) => event.event === "FeeDistributed"
                         );
                         const [block, amount1] = event1.args;
-        
+
                         const tx2 = await compound.claim();
                         const rc2 = await tx2.wait();
                         const event2 = rc2.events.find(
@@ -209,10 +237,12 @@ describe("Compound contract: ", function () {
                         );
                         const [user, amount2] = event2.args;
                         //
-                        expect(BigInt(amount1) / BigInt(2)).to.equal(BigInt(amount2));
+                        expect(BigInt(amount1) / BigInt(2)).to.equal(
+                            BigInt(amount2)
+                        );
                     });
                 });
-        
+
                 describe("feeDistribution: ", async function () {
                     it("Should revert on 0 fee", async () => {
                         try {
@@ -224,25 +254,28 @@ describe("Compound contract: ", function () {
                         }
                     });
                 });
-        
+
                 describe("addReward: ", async function () {
                     it("Should add reward", async () => {
-                        await gatetoken.approve(compound.address, BigInt(10000e18));
-        
+                        await gatetoken.approve(
+                            compound.address,
+                            BigInt(10000e18)
+                        );
+
                         const tx = await compound.addReward(BigInt(10000e18));
                         const rc = await tx.wait();
                         const event = rc.events.find(
                             (event) => event.event === "RewardAdded"
                         );
                         const [amount] = event.args;
-        
-                        expect(await gatetoken.balanceOf(compound.address)).to.equal(
-                            amount
-                        );
+
+                        expect(
+                            await gatetoken.balanceOf(compound.address)
+                        ).to.equal(amount);
                     });
                 });
             });
-        
+
             describe("not started: ", async function () {
                 it("Should not be able to stake", async () => {
                     try {
@@ -257,7 +290,7 @@ describe("Compound contract: ", function () {
                         );
                     }
                 });
-        
+
                 it("Should not be able to unstake", async () => {
                     try {
                         await compound.withdrawAll();
@@ -267,7 +300,7 @@ describe("Compound contract: ", function () {
                         );
                     }
                 });
-        
+
                 it("Should not be able to claim", async () => {
                     try {
                         await compound.claim();
@@ -278,7 +311,7 @@ describe("Compound contract: ", function () {
                     }
                 });
             });
-        
+
             it("Should revert on minimum period not passed", async function () {
                 await gatetoken.approve(compound.address, BigInt(1000e18));
                 await compound.deposit(BigInt(1000e18));
@@ -387,10 +420,7 @@ describe("Compound contract: ", function () {
     describe("not started: ", async function () {
         it("Should not be able to stake", async () => {
             try {
-                await gatetoken.approve(
-                    compound.address,
-                    BigInt(1000000e18)
-                );
+                await gatetoken.approve(compound.address, BigInt(1000000e18));
                 await compound.deposit(BigInt(1000000e18));
             } catch (error) {
                 expect(error.message).to.equal(

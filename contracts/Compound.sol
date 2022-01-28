@@ -141,6 +141,34 @@ contract Compound is Ownable {
         }
     }
 
+    function withdraw(uint256 index) external started updateShareWorth {
+        require(
+            userInfo[msg.sender][index].stakeTime + LOCK_PERIOD <=
+                block.timestamp
+        );
+        require(userInfo[msg.sender][index].shares > 0);
+        uint256 _shares = userInfo[msg.sender][index].shares;
+        userInfo[msg.sender][index].shares -= _shares;
+        fees[msg.sender] += ((_shares *
+            (feePerShare - userInfo[msg.sender][index].fee)) / 1 ether);
+
+        uint256 feesReward = fees[msg.sender];
+
+        if (feesReward > 0) {
+            fees[msg.sender] = 0;
+            emit Claimed(msg.sender, feesReward);
+        }
+
+        totalShares -= _shares;
+        totalStaked -= _shares * shareWorth;
+        uint256 sendingAmount = _shares *
+            shareWorth +
+            userInfo[msg.sender][index].excess +
+            feesReward;
+        stakedToken.transfer(msg.sender, sendingAmount);
+        emit Withdraw(msg.sender, sendingAmount, _shares);
+    }
+
 
     function calculateFees(address user) internal returns (uint256) {
         uint256 _fees;
@@ -222,11 +250,11 @@ contract Compound is Ownable {
         if (newTotalStaked > 0) {
             for (
                 uint256 i = 0;
-                i < (lastTimeRewardApplicable() - lastUpdateTime) / 1 hours;
+                i < (lastTimeRewardApplicable() - lastUpdateTime) / 1 days;
                 i++
             ) {
                 uint256 placeHolder = newShareWorth;
-                newShareWorth += (newShareWorth * 1 hours * rewardRate) / newTotalStaked;
+                newShareWorth += (newShareWorth * 1 days * rewardRate) / newTotalStaked;
                 newTotalStaked += totalShares * (newShareWorth - placeHolder);
             }
         }
@@ -265,14 +293,14 @@ contract Compound is Ownable {
         if (totalStaked > 0) {
             for (
                 uint256 i = 0;
-                i < (lastTimeRewardApplicable() - lastUpdateTime) / 1 hours;
+                i < (lastTimeRewardApplicable() - lastUpdateTime) / 1 days;
                 i++
             ) {
                 uint256 placeHolder = shareWorth;
-                shareWorth += (shareWorth * 1 hours * rewardRate) / totalStaked;
+                shareWorth += (shareWorth * 1 days * rewardRate) / totalStaked;
                 totalStaked += totalShares * (shareWorth - placeHolder);
             }
-            lastUpdateTime = (lastTimeRewardApplicable() / 1 hours) * 1 hours;
+            lastUpdateTime = (lastTimeRewardApplicable() / 1 days) * 1 days;
         }
         _;
     }
