@@ -1,3 +1,4 @@
+# this is changes
 # GATE Token Staking Platform Smart Contracts
 
 Staking/Rewards and Governance Platform
