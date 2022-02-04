@@ -82,7 +82,7 @@ contract Compound is Ownable {
 
     function deposit(uint256 amount) external started updateShareWorth {
         require(amount >= MINIMUM_STAKE, "Stake too small");
-        require(shareWorth < MINIMUM_STAKE, "Stake smaller than share worth");
+        require(amount >= shareWorth, "Stake smaller than share worth");
 
         userInfo[msg.sender].push(
             UserInfo(
