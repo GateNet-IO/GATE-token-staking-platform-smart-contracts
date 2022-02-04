@@ -44,7 +44,11 @@ contract Compound is Ownable {
     event Withdraw(address indexed sender, uint256 amount, uint256 shares);
     event Staked(address indexed user, uint256 amount);
     event Claimed(address indexed user, uint256 amount);
-    event FeeDistributed(uint256 block, uint256 amount, uint256 totalSharesAtEvent);
+    event FeeDistributed(
+        uint256 block,
+        uint256 amount,
+        uint256 totalSharesAtEvent
+    );
     event Unstaked(address indexed user, uint256 amount, uint256 index);
     event RewardAdded(uint256 amount, uint256 rewardRateIncrease);
 
@@ -78,6 +82,7 @@ contract Compound is Ownable {
 
     function deposit(uint256 amount) external started updateShareWorth {
         require(amount >= MINIMUM_STAKE, "Stake too small");
+        require(shareWorth < MINIMUM_STAKE, "Stake smaller than share worth");
 
         userInfo[msg.sender].push(
             UserInfo(
@@ -92,17 +97,10 @@ contract Compound is Ownable {
         totalStaked += ((amount / shareWorth) * shareWorth);
         stakedToken.transferFrom(msg.sender, address(this), amount);
 
-        emit Deposit(
-            msg.sender,
-            amount,
-            amount / shareWorth,
-            block.timestamp
-        );
+        emit Deposit(msg.sender, amount, amount / shareWorth, block.timestamp);
     }
 
-    function withdrawAll() external 
-        started
-        updateShareWorth {
+    function withdrawAll() external started updateShareWorth {
         uint256 _totalShares;
         uint256 _excess;
 
@@ -129,14 +127,14 @@ contract Compound is Ownable {
         }
 
         if (_totalShares > 0) {
-            totalShares -= _totalShares;    
+            totalShares -= _totalShares;
             totalStaked -= _totalShares * shareWorth;
-            uint256 sendingAmount = _totalShares * shareWorth + _excess + feesReward;
+            uint256 sendingAmount = _totalShares *
+                shareWorth +
+                _excess +
+                feesReward;
 
-            stakedToken.transfer(
-                msg.sender,
-                sendingAmount
-            );
+            stakedToken.transfer(msg.sender, sendingAmount);
             emit Withdraw(msg.sender, sendingAmount, _totalShares);
         }
     }
@@ -169,12 +167,10 @@ contract Compound is Ownable {
         emit Withdraw(msg.sender, sendingAmount, _shares);
     }
 
-
     function calculateFees(address user) internal returns (uint256) {
         uint256 _fees;
 
         for (uint256 i = 0; i < userInfo[user].length; i++) {
-            
             _fees += ((userInfo[user][i].shares *
                 (feePerShare - userInfo[user][i].fee)) / 1 ether);
 
@@ -217,10 +213,8 @@ contract Compound is Ownable {
         uint256 _fees;
 
         for (uint256 i = 0; i < userInfo[user].length; i++) {
-            
             _fees += ((userInfo[user][i].shares *
                 (feePerShare - userInfo[user][i].fee)) / 1 ether);
-
         }
 
         return _fees;
@@ -238,7 +232,7 @@ contract Compound is Ownable {
 
     function lastTimeRewardApplicable() public view returns (uint256) {
         return block.timestamp < endDate ? block.timestamp : endDate;
-    }   
+    }
 
     function firstTimeRewardApplicable() public view returns (uint256) {
         return block.timestamp < beginDate ? beginDate : block.timestamp;
@@ -254,21 +248,26 @@ contract Compound is Ownable {
                 i++
             ) {
                 uint256 placeHolder = newShareWorth;
-                newShareWorth += (newShareWorth * 1 days * rewardRate) / newTotalStaked;
+                newShareWorth +=
+                    (newShareWorth * 1 days * rewardRate) /
+                    newTotalStaked;
                 newTotalStaked += totalShares * (newShareWorth - placeHolder);
             }
         }
         return newShareWorth;
     }
 
-    function currentWithdrawalPossible(address user) public view returns (uint256) {
+    function currentWithdrawalPossible(address user)
+        public
+        view
+        returns (uint256)
+    {
         uint256 _totalShares;
         uint256 _excess;
         uint256 _feePayout;
         for (uint256 i = 0; i < userInfo[user].length; i++) {
             if (
-                userInfo[user][i].stakeTime + LOCK_PERIOD <=
-                block.timestamp &&
+                userInfo[user][i].stakeTime + LOCK_PERIOD <= block.timestamp &&
                 userInfo[user][i].shares > 0
             ) {
                 uint256 _shares = userInfo[user][i].shares;
@@ -287,7 +286,6 @@ contract Compound is Ownable {
     }
 
     /* ========== MODIFIERS ========== */
-
 
     modifier updateShareWorth() {
         if (totalStaked > 0) {
