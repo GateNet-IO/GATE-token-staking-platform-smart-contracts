@@ -2,6 +2,10 @@
 
 Staking/Rewards and Governance Platform
 
+# Audit
+
+[GATE Token Staking Platform Audit Report - 04.02.22 by Ville Sundell](./GATE-Token-Staking-Platform-Audit-Report-v2.pdf)
+
 ## .env file
 ETHERSCAN_API: get at etherscan.com<br />
 PRIVATE_KEY: ethereum wallet private key<br />
